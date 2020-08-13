@@ -25,6 +25,7 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DATA) ./files/read_caldata_to_fs.sh $(1)/lib
 	$(INSTALL_DATA) ./files/wifi_interface_helper.sh $(1)/lib
 	$(INSTALL_DATA) ./files/update_smp_affinity.sh $(1)/lib
+	$(INSTALL_DATA) ./files/wifi_init_kernel54_config.sh $(1)/lib
 endef
 Build/Compile=true
 $(eval $(call BuildPackage,$(PKG_NAME)))

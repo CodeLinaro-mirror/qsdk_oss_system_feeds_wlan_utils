@@ -1,6 +1,6 @@
 #!/bin/sh
 #
-# Copyright (c) 2015, 2020, The Linux Foundation. All rights reserved.
+# Copyright (c) 2020, The Linux Foundation. All rights reserved.
 
 # Permission to use, copy, modify, and/or distribute this software for any
 # purpose with or without fee is hereby granted, provided that the above
@@ -14,8 +14,16 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-. /lib/read_caldata_to_fs.sh
-. /lib/wifi_init_kernel54_config.sh
 
-boot_hook_add preinit_main do_load_ipq4019_board_bin
-boot_hook_add preinit_main do_init_kernel54_config
+function update_ini_file()
+{
+        update_ini_cmd="grep -q $1 /ini/global.ini && sed -i '/$1=/c $1=$2' /ini/global.ini || echo $1=$2 >> /ini/global.ini"
+        eval $update_ini_cmd
+        sync
+}
+
+function do_init_kernel54_config()
+{
+        echo -n "/ini" > /sys/module/firmware_class/parameters/path
+        update_ini_file cfg80211_config "1"
+}
