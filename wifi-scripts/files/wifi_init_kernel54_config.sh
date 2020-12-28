@@ -14,38 +14,43 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-#Usage: update_ini_file <file_name> <ini_param> <value>
-function update_ini_file()
-{
-	local filename=$1
-	local param=$2
-	local value=$3
-	update_ini_cmd="grep -q $param /ini/$filename && sed -i '/$param=/c $param=$value' /ini/$filename || echo $param=$value >> /ini/$filename"
-	eval $update_ini_cmd
-	sync
-}
-
-#Usage: update_ini_internal_file <file_name> <ini_param> <value>
-function update_ini_internal_file()
-{
-	local filename=$1
-	local param=$2
-	local value=$3
-	update_ini_internal_cmd="grep -q $param /ini/internal/$filename && sed -i '/$param=/c $param=$value' /ini/internal/$filename || echo $param=$value >> /ini/internal/$filename"
-	eval $update_ini_internal_cmd
-	sync
-}
+include /lib/wifi
 
 function do_init_kernel54_config()
 {
 	echo -n "/ini" > /sys/module/firmware_class/parameters/path
-	update_ini_file global.ini cfg80211_config "1"
+	update_ini_file cfg80211_config "1"
 
 	[ -f /tmp/sysinfo/board_name ] && {
 		board_name=ap$(cat /tmp/sysinfo/board_name | awk -F 'ap' '{print$2}')
 	}
 
 	if [ "$board_name" = "ap-hk10-c1"  ]; then
-		update_ini_internal_file global_i.ini mode_2g_phyb "1"
+		update_internal_ini global_i.ini mode_2g_phyb 1
+	fi
+
+	#Temporarily keep coldboot calibration disabled
+	touch /ini/firmware_rdp_feature.ini
+
+	is_ftm=`grep wifi_ftm_mode /proc/cmdline | wc -l`
+	is_wal=`grep waltest_mode /proc/cmdline | wc -l`
+	if [ $is_wal = 1 ]; then
+		echo 3 > /sys/module/cnss2/parameters/driver_mode
+	elif [ $is_ftm = 1 ]; then
+		dmesg -n1
+		do_cold_boot_calibration_qcawificfg80211
+		# If coldboot calibration is enabled in FW INI file, driver_mode
+		# would be set to 10. After coldboot calibration, driver would
+		# automatically switch to FTM mode.
+		# If coldboot calibration is disabled, driver_mode should be
+		# set to 1 (FTM) here.
+		if [ "$(cat /sys/module/cnss2/parameters/driver_mode)" == 10 ]; then
+			echo "Entering FTM mode operation after Coldboot Calibration" > /dev/console
+		else
+			echo "Entering FTM mode operation" > /dev/console
+			echo 1 > /sys/module/cnss2/parameters/driver_mode
+		fi
+	else
+		do_cold_boot_calibration_qcawificfg80211
 	fi
 }
