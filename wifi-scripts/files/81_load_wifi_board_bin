@@ -15,5 +15,7 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 . /lib/read_caldata_to_fs.sh
+. /lib/update_wifi_module_param.sh
 
 boot_hook_add preinit_main do_load_ipq4019_board_bin
+boot_hook_add preinit_main do_load_wifi_module_param
