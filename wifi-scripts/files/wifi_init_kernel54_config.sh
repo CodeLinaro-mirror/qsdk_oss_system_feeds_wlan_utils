@@ -29,10 +29,6 @@ function do_init_kernel54_config()
 		update_internal_ini global_i.ini mode_2g_phyb 1
 	fi
 
-	#Temporarily keep coldboot calibration disabled
-	touch /ini/firmware_rdp_feature.ini
-	touch /ini/firmware_rdp_feature_512P.ini
-
 	is_ftm=`grep wifi_ftm_mode /proc/cmdline | wc -l`
 	is_wal=`grep waltest_mode /proc/cmdline | wc -l`
 	if [ $is_wal = 1 ]; then
