@@ -120,7 +120,9 @@ enable_smp_affinity_wifi() {
 	# Enable smp_affinity for Lithium
 
 	#Flipping arrangement for HK14 boards as reo2host-destination-ring1 5G data needs to go to core 1 for better throughput
-	board=$(cat /tmp/sysinfo/board_name)
+	[ -f /tmp/sysinfo/board_name ] && {
+		board=ap$(cat /tmp/sysinfo/board_name | awk -F 'ap' '{print$2}')
+	}
 
 	case "$board" in
 		ap-hk14*)
