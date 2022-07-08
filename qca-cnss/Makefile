@@ -31,7 +31,7 @@ define KernelPackage/$(PKG_NAME)/config
 		bool "Support compilation of CNSS2 as DLKM"
 		default n
 		help
-		This option enables compilation of CNSS2 as a Dynamically-loaded Kernel Module
+	This option enables compilation of CNSS2 as a Dynamically-loaded Kernel Module
 endef
 
 define Build/InstallDev
@@ -41,12 +41,33 @@ endef
 
 CONFIG_BUILD_QSDK=y
 
+define KernelPackage/$(PKG_NAME)-stream
+	SECTION:=kernel
+	CATEGORY:=Kernel modules
+	SUBMENU:=Network Devices
+	TITLE:=CNSS stream Platform Driver
+
+	DEPENDS:=\
+		+kmod-udptunnel4 \
+		+IPV6:kmod-udptunnel6 \
+		+kmod-qca-cnss
+	FILES:=$(PKG_BUILD_DIR)/ipq_cnss2_stream.ko
+endef
+
+define KernelPackage/$(PKG_NAME)/Description
+	This package contains CNSS stream Platform Driver for QTI WLAN Chipsets
+endef
+
+DRV_MAKE_OPTS+=QCA_CNSS_STREAM_MOD=y
+
 define Build/Compile
 	export CONFIG_BUILD_QSDK="$(CONFIG_BUILD_QSDK)"; \
-	$(MAKE) -C "$(LINUX_DIR)" \
+	$(MAKE) -C "$(LINUX_DIR)" $(strip $(DRV_MAKE_OPTS)) \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
 		ARCH="$(LINUX_KARCH)" \
-		M="$(PKG_BUILD_DIR)"
+		M="$(PKG_BUILD_DIR)" \
+		modules
 endef
 
 $(eval $(call KernelPackage,$(PKG_NAME)))
+$(eval $(call KernelPackage,$(PKG_NAME)-stream))
