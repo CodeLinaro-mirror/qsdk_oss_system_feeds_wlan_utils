@@ -490,6 +490,7 @@ enable_smp_affinity_wifi() {
 		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
 		irq_affinity_num=`grep -E -m1 'pci3_wlan_grp_dp_11' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
 		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
+		;;
 	*)
 	esac
 
