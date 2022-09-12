@@ -343,14 +343,14 @@ enable_smp_affinity_wifi() {
 	}
 	case "$board" in
 	ap-al02-c1 | ap-al01-c1)
-		irq_affinity_num=`grep -E -m1 'pci1_wlan_grp_dp_4' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
-		[ -n "$irq_affinity_num" ] && echo 8 > /proc/irq/$irq_affinity_num/smp_affinity
-		irq_affinity_num=`grep -E -m1 'pci1_wlan_grp_dp_5' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
-		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
-		irq_affinity_num=`grep -E -m1 'pci1_wlan_grp_dp_6' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
-		[ -n "$irq_affinity_num" ] && echo 2 > /proc/irq/$irq_affinity_num/smp_affinity
-		irq_affinity_num=`grep -E -m1 'pci1_wlan_grp_dp_7' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		irq_affinity_num=`grep -E -m1 'pci0_wlan_grp_dp_4' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
 		[ -n "$irq_affinity_num" ] && echo 1 > /proc/irq/$irq_affinity_num/smp_affinity
+		irq_affinity_num=`grep -E -m1 'pci0_wlan_grp_dp_5' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		[ -n "$irq_affinity_num" ] && echo 2 > /proc/irq/$irq_affinity_num/smp_affinity
+		irq_affinity_num=`grep -E -m1 'pci0_wlan_grp_dp_6' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
+		irq_affinity_num=`grep -E -m1 'pci0_wlan_grp_dp_7' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		[ -n "$irq_affinity_num" ] && echo 8 > /proc/irq/$irq_affinity_num/smp_affinity
 		;;
 	*)
 		irq_affinity_num=`grep -E -m1 'pci1_wlan_grp_dp_4' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
@@ -476,4 +476,22 @@ enable_smp_affinity_wifi() {
 		;;
 	*)
 	esac
+
+	# Map RX error interrupts to CPU2
+	[ -f /tmp/sysinfo/board_name ] && {
+                board=ap$(cat /tmp/sysinfo/board_name | awk -F 'ap' '{print$2}')
+        }
+	case "$board" in
+	ap-al02-c4)
+		#smp affinity for Rx release ring
+		irq_affinity_num=`grep -E -m1 'pci1_wlan_grp_dp_11' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
+		irq_affinity_num=`grep -E -m1 'pci2_wlan_grp_dp_11' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
+		irq_affinity_num=`grep -E -m1 'pci3_wlan_grp_dp_11' /proc/interrupts | cut -d ':' -f 1 | tail -n1 | tr -d ' '`
+		[ -n "$irq_affinity_num" ] && echo 4 > /proc/irq/$irq_affinity_num/smp_affinity
+		;;
+	*)
+	esac
+
 }
