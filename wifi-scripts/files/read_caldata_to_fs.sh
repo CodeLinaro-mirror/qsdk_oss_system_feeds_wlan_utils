@@ -375,6 +375,57 @@ do_load_ipq4019_board_bin()
                     [ -L /lib/firmware/IPQ9574/caldata.bin ] || \
                     cp ${apdk}/IPQ9574/caldata.bin /lib/firmware/IPQ9574/caldata.bin
             ;;
+            ap-mi01.1*|ap-mi01.4*)
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
+                    MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
+                    mkdir -p ${apdk}/IPQ5332
+                    if [ -f "$MI_BD_FILENAME" ]; then
+                        FILESIZE=$(stat -Lc%s "$MI_BD_FILENAME")
+                    else
+                        FILESIZE=131072
+                    fi
+                    dd if=${mtdblock} of=${apdk}/IPQ5332/caldata.bin bs=1 count=$FILESIZE skip=4096
+                    [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
+                    cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
+
+                    WKK_FILESIZE=184320
+                    mkdir -p ${apdk}/qcn9224
+                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_1.bin bs=1 count=$WKK_FILESIZE skip=157696
+                    cp ${apdk}/qcn9224/caldata_1.bin /lib/firmware/qcn9224/caldata_1.bin
+            ;;
+            ap-mi01.2*)
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
+                    MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
+                    mkdir -p ${apdk}/IPQ5332
+                    if [ -f "$MI_BD_FILENAME" ]; then
+                        FILESIZE=$(stat -Lc%s "$MI_BD_FILENAME")
+                    else
+                        FILESIZE=131072
+                    fi
+                    dd if=${mtdblock} of=${apdk}/IPQ5332/caldata.bin bs=1 count=$FILESIZE skip=4096
+                    [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
+                    cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
+
+                    WKK_FILESIZE=184320
+                    mkdir -p ${apdk}/qcn9224
+                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_1.bin bs=1 count=$WKK_FILESIZE skip=157696
+                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_2.bin bs=1 count=$WKK_FILESIZE skip=362496
+                    cp ${apdk}/qcn9224/caldata_1.bin /lib/firmware/qcn9224/caldata_1.bin
+                    cp ${apdk}/qcn9224/caldata_2.bin /lib/firmware/qcn9224/caldata_2.bin
+            ;;
+            ap-mi*)
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
+                    MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
+                    mkdir -p ${apdk}/IPQ5332
+                    if [ -f "$MI_BD_FILENAME" ]; then
+                        FILESIZE=$(stat -Lc%s "$MI_BD_FILENAME")
+                    else
+                        FILESIZE=131072
+                    fi
+                    dd if=${mtdblock} of=${apdk}/IPQ5332/caldata.bin bs=1 count=$FILESIZE skip=4096
+                    [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
+                    cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
+            ;;
    esac
 }
 
