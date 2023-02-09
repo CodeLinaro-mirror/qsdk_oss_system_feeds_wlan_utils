@@ -16,6 +16,46 @@
 
 . /lib/functions.sh
 
+is_ftm_conf_supported() {
+	local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+
+	case "$board" in
+	ap-mi*|ap-al02-c4*)
+		;;
+	*)
+		echo "ftm.conf file is not supported for $board " > /dev/console
+		rm -rf /ini/ftm.conf
+		;;
+	esac
+}
+
+is_ftm_conf_supported
+
+create_cfg_caldata() {
+	local brd=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+
+	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_size=$2 -v ahb_dir=$3 -v pci_size=$4 -v pci_dir=$5 -v board=$brd '{
+		if ($1 == board) {
+			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5
+			if ($3 == 0) {
+				print "Internal radio"
+				cmd = "dd if="mtdblock" of=" apdk ahb_dir "/caldata.bin bs=1 count=" ahb_size " skip=" $4
+				system(cmd)
+				cmd = "cp " apdk ahb_dir "/caldata.bin /lib/firmware/" ahb_dir "/"
+				system(cmd)
+			} else {
+				print "PCI radio"
+				cmd = "dd if="mtdblock" of=" apdk pci_dir "/caldata_" $3 ".b" $2 " bs=1 count=" pci_size " skip=" $4
+				system(cmd)
+				cmd = "cp " apdk pci_dir "/caldata_" $3 ".b" $2 " /lib/firmware/" pci_dir "/"
+				system(cmd)
+			}
+		}
+	}' /ini/ftm.conf
+
+	[ -f /lib/firmware/$3/caldata.bin ] || touch /lib/firmware/$3/caldata.bin
+}
+
 do_load_ipq4019_board_bin()
 {
 
@@ -319,7 +359,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9224/caldata_3.bin /lib/firmware/qcn9224/caldata_3.bin
                     cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
             ;;
-            ap-al02-c4*|ap-al02-c6*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al03-c1*|ap-al03-c2*)
+            ap-al02-c6*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al03-c1*|ap-al03-c2*)
                     [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
@@ -342,6 +382,20 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9224/caldata_2.bin /lib/firmware/qcn9224/caldata_2.bin
                     cp ${apdk}/qcn9224/caldata_3.bin /lib/firmware/qcn9224/caldata_3.bin
                     cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
+            ;;
+            ap-al02-c4*)
+                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
+                    AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
+                    mkdir -p ${apdk}/IPQ9574
+                    if [ -f "$AL_BD_FILENAME" ]; then
+                        FILESIZE=$(stat -Lc%s "$AL_BD_FILENAME")
+                    else
+                        FILESIZE=131072
+                    fi
+
+                    WKK_FILESIZE=184320
+                    mkdir -p ${apdk}/qcn9224
+                    create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ9574" "$WKK_FILESIZE" "qcn9224"
             ;;
             ap-al02*)
                     [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
@@ -375,7 +429,7 @@ do_load_ipq4019_board_bin()
                     [ -L /lib/firmware/IPQ9574/caldata.bin ] || \
                     cp ${apdk}/IPQ9574/caldata.bin /lib/firmware/IPQ9574/caldata.bin
             ;;
-            ap-mi01.1*|ap-mi01.4*)
+            ap-mi01.1*|ap-mi01.2*|ap-mi01.4*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
                     MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5332
@@ -384,34 +438,11 @@ do_load_ipq4019_board_bin()
                     else
                         FILESIZE=131072
                     fi
-                    dd if=${mtdblock} of=${apdk}/IPQ5332/caldata.bin bs=1 count=$FILESIZE skip=4096
-                    [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
-                    cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
 
                     WKK_FILESIZE=184320
                     mkdir -p ${apdk}/qcn9224
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_1.bin bs=1 count=$WKK_FILESIZE skip=157696
-                    cp ${apdk}/qcn9224/caldata_1.bin /lib/firmware/qcn9224/caldata_1.bin
-            ;;
-            ap-mi01.2*)
-                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
-                    MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
-                    mkdir -p ${apdk}/IPQ5332
-                    if [ -f "$MI_BD_FILENAME" ]; then
-                        FILESIZE=$(stat -Lc%s "$MI_BD_FILENAME")
-                    else
-                        FILESIZE=131072
-                    fi
-                    dd if=${mtdblock} of=${apdk}/IPQ5332/caldata.bin bs=1 count=$FILESIZE skip=4096
-                    [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
-                    cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
 
-                    WKK_FILESIZE=184320
-                    mkdir -p ${apdk}/qcn9224
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_1.bin bs=1 count=$WKK_FILESIZE skip=157696
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_2.bin bs=1 count=$WKK_FILESIZE skip=362496
-                    cp ${apdk}/qcn9224/caldata_1.bin /lib/firmware/qcn9224/caldata_1.bin
-                    cp ${apdk}/qcn9224/caldata_2.bin /lib/firmware/qcn9224/caldata_2.bin
+                    create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ5332" "$WKK_FILESIZE" "qcn9224"
             ;;
             ap-mi*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
@@ -422,9 +453,7 @@ do_load_ipq4019_board_bin()
                     else
                         FILESIZE=131072
                     fi
-                    dd if=${mtdblock} of=${apdk}/IPQ5332/caldata.bin bs=1 count=$FILESIZE skip=4096
-                    [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
-                    cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
+                    create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ5332"
             ;;
    esac
 }
