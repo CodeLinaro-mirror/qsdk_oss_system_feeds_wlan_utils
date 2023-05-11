@@ -85,7 +85,7 @@ do_load_ipq4019_board_bin()
                     dd if=${mtdblock} of=${apdk}/wifi2.caldata bs=32 count=377 skip=1152
             ;;
             ap-hk14 | ap-hk01-c6)
-                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && return
                     FILESIZE=131072
                     mkdir -p ${apdk}/IPQ8074
                     dd if=${mtdblock} of=${apdk}/IPQ8074/caldata.bin bs=1 count=$FILESIZE skip=4096
@@ -96,7 +96,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_1.bin /lib/firmware/qcn9000/caldata_1.bin
             ;;
             ap-hk01-*)
-                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && return
                     HK_BD_FILENAME=/lib/firmware/IPQ8074/bdwlan.bin
                     mkdir -p ${apdk}/IPQ8074
                     if [ -f "$HK_BD_FILENAME" ]; then
@@ -109,7 +109,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/IPQ8074/caldata.bin /lib/firmware/IPQ8074/caldata.bin
             ;;
             ap-hk10-*)
-                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && return
                     FILESIZE=131072
                     mkdir -p ${apdk}/IPQ8074
                     dd if=${mtdblock} of=${apdk}/IPQ8074/caldata.bin bs=1 count=$FILESIZE skip=4096
@@ -122,7 +122,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_2.bin /lib/firmware/qcn9000/caldata_2.bin
 	    ;;
             ap-hk* | ap-ac* | ap-oa*)
-                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ8074/caldata.bin ] && return
                     HK_BD_FILENAME=/lib/firmware/IPQ8074/bdwlan.bin
                     mkdir -p ${apdk}/IPQ8074
                     dd if=${mtdblock} of=${apdk}/wifi1.caldata bs=1 count=12064 skip=208896
@@ -136,7 +136,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/IPQ8074/caldata.bin /lib/firmware/IPQ8074/caldata.bin
             ;;
             ap-cp01-c3*)
-                    [ -f /lib/firmware/IPQ6018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ6018/caldata.bin ] && return
                     CP_BD_FILENAME=/lib/firmware/IPQ6018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ6018
                     if [ -f "$CP_BD_FILENAME" ]; then
@@ -154,7 +154,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_1.bin /lib/firmware/qcn9000/caldata_1.bin
             ;;
             ap-cp01-c5*)
-                    [ -f /lib/firmware/IPQ6018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ6018/caldata.bin ] && return
                     CP_BD_FILENAME=/lib/firmware/IPQ6018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ6018
                     if [ -f "$CP_BD_FILENAME" ]; then
@@ -202,7 +202,7 @@ do_load_ipq4019_board_bin()
                     ln -s ${apdk}/qcn6122/caldata_2.bin /lib/firmware/qcn6122/caldata_2.bin
             ;;
             ap-mp03.1)
-                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5018
                     FILESIZE=131072
 
@@ -231,7 +231,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_1.bin /lib/firmware/qcn9000/caldata_1.bin
             ;;
             ap-mp03.1-* | ap-mp03.6*)
-                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && return
                     MP_BD_FILENAME=/lib/firmware/IPQ5018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5018
                     if [ -f "$MP_BD_FILENAME" ]; then
@@ -247,7 +247,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_1.bin /lib/firmware/qcn9000/caldata_1.bin
             ;;
             ap-mp03.5*)
-                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && return
                     MP_BD_FILENAME=/lib/firmware/IPQ5018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5018
                     if [ -f "$MP_BD_FILENAME" ]; then
@@ -267,7 +267,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn6122/caldata_2.bin /lib/firmware/qcn6122/caldata_2.bin
             ;;
             ap-mp03.3*)
-                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && return
                     MP_BD_FILENAME=/lib/firmware/IPQ5018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5018
                     if [ -f "$MP_BD_FILENAME" ]; then
@@ -287,7 +287,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_2.bin /lib/firmware/qcn9000/caldata_2.bin
             ;;
             ap-mp03.4*)
-                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && return
                     MP_BD_FILENAME=/lib/firmware/IPQ5018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5018
                     if [ -f "$MP_BD_FILENAME" ]; then
@@ -307,7 +307,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_2.bin /lib/firmware/qcn9000/caldata_2.bin
             ;;
             ap-mp*)
-                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5018/caldata.bin ] && return
                     MP_BD_FILENAME=/lib/firmware/IPQ5018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5018
                     if [ -f "$MP_BD_FILENAME" ]; then
@@ -320,7 +320,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/IPQ5018/caldata.bin /lib/firmware/IPQ5018/caldata.bin
             ;;
             ap-cp*)
-                    [ -f /lib/firmware/IPQ6018/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ6018/caldata.bin ] && return
                     CP_BD_FILENAME=/lib/firmware/IPQ6018/bdwlan.bin
                     mkdir -p ${apdk}/IPQ6018
                     if [ -f "$CP_BD_FILENAME" ]; then
@@ -333,7 +333,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/IPQ6018/caldata.bin /lib/firmware/IPQ6018/caldata.bin
             ;;
             ap-al02-c13*)
-                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
                     if [ -f "$AL_BD_FILENAME" ]; then
@@ -360,7 +360,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
             ;;
             ap-al02-c6*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al03-c1*|ap-al03-c2*)
-                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
                     if [ -f "$AL_BD_FILENAME" ]; then
@@ -384,7 +384,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
             ;;
             ap-al02-c4*)
-                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
                     if [ -f "$AL_BD_FILENAME" ]; then
@@ -398,7 +398,7 @@ do_load_ipq4019_board_bin()
                     create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ9574" "$WKK_FILESIZE" "qcn9224"
             ;;
             ap-al02*)
-                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
                     if [ -f "$AL_BD_FILENAME" ]; then
@@ -417,7 +417,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9000/caldata_2.bin /lib/firmware/qcn9000/caldata_2.bin
             ;;
             ap-al*)
-                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
                     if [ -f "$AL_BD_FILENAME" ]; then
@@ -430,7 +430,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/IPQ9574/caldata.bin /lib/firmware/IPQ9574/caldata.bin
             ;;
             ap-mi01.1*|ap-mi01.2*|ap-mi01.4*)
-                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5332
                     if [ -f "$MI_BD_FILENAME" ]; then
@@ -445,7 +445,7 @@ do_load_ipq4019_board_bin()
                     create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ5332" "$WKK_FILESIZE" "qcn9224"
             ;;
             ap-mi*)
-                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
                     mkdir -p ${apdk}/IPQ5332
                     if [ -f "$MI_BD_FILENAME" ]; then
