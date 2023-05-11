@@ -444,6 +444,21 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ5332" "$WKK_FILESIZE" "qcn9224"
             ;;
+	    ap-mi01.3*|ap-mi04.1*)
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
+                    MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
+                    mkdir -p ${apdk}/IPQ5332
+                    if [ -f "$MI_BD_FILENAME" ]; then
+                        FILESIZE=$(stat -Lc%s "$MI_BD_FILENAME")
+                    else
+                        FILESIZE=131072
+                    fi
+
+                    PEB_FILESIZE=184320
+                    mkdir -p ${apdk}/qcn6432
+
+                    create_cfg_caldata "${mtdblock}" "$FILESIZE" "IPQ5332" "$PEB_FILESIZE" "qcn6432"
+            ;;
             ap-mi*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && exit 1;
                     MI_BD_FILENAME=/lib/firmware/IPQ5332/bdwlan.bin
