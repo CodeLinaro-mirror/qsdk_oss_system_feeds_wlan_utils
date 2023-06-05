@@ -44,10 +44,7 @@ create_cfg_caldata() {
 				close(cmd)
 				if(!BDF_SIZE) {
 					print "BDF file for Board id " $2 " not found. Using default value"
-					if (is_wkk == 1)
-						BDF_SIZE=184320
-					else
-						BDF_SIZE=131072
+					BDF_SIZE=131072
 				}
 				cmd = "dd if="mtdblock" of=" apdk ahb_dir "/caldata.bin bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
