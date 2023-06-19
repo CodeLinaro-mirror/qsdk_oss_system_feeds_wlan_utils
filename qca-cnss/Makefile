@@ -59,6 +59,7 @@ define KernelPackage/$(PKG_NAME)/Description
 endef
 
 DRV_MAKE_OPTS+=QCA_CNSS_STREAM_MOD=y
+DRV_MAKE_OPTS+=QCA_CNSS_KERNEL_DEPENDENCY=y
 
 define Build/Compile
 	export CONFIG_BUILD_QSDK="$(CONFIG_BUILD_QSDK)"; \
