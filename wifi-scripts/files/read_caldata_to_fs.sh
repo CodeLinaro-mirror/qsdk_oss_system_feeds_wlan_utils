@@ -439,7 +439,7 @@ do_load_ipq4019_board_bin()
                     [ -L /lib/firmware/IPQ9574/caldata.bin ] || \
                     cp ${apdk}/IPQ9574/caldata.bin /lib/firmware/IPQ9574/caldata.bin
             ;;
-            ap-mi01.1*|ap-mi01.2*|ap-mi01.4*)
+            ap-mi01.1*|ap-mi01.2*|ap-mi01.4*|ap-mi01.6*|ap-mi01.9*|ap-mi02.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn9224
