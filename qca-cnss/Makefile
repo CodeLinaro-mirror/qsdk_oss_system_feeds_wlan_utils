@@ -64,6 +64,14 @@ ifeq ($(CONFIG_LINUX_6_1),y)
 DRV_MAKE_OPTS+=QCA_CNSS_LINUX_6_1_SUPPORT=y
 endif
 
+ifeq ($(strip ${CONFIG_KERNEL_IPQ_MEM_PROFILE}),256)
+DRV_MAKE_OPTS+=QCA_CNSS_LOWMEM_PROFILE=y
+endif
+
+ifeq ($(strip ${CONFIG_TARGET_ipq53xx}),y)
+DRV_MAKE_OPTS+=ENABLE_QCA5332_HEADER=y
+endif
+
 define Build/Compile
 	export CONFIG_BUILD_QSDK="$(CONFIG_BUILD_QSDK)"; \
 	$(MAKE) -C "$(LINUX_DIR)" $(strip $(DRV_MAKE_OPTS)) \
