@@ -19,11 +19,13 @@
 . /lib/create_cfg_caldata.sh
 
 is_ftm_conf_supported() {
-       local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
-       local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
+	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+	local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
+	local ini_path=$(get_config_file_path "ini")
 
 	case "$board" in
-	ap-mi*|ap-al02-c4*|db-mi02.1*)
+	ap-mi*|ap-al02-c4*|db-mi02.1*|ap-sdxpinn-qcn9224*)
+		ln -s $ini_path/ftm.conf /tmp/ftm.conf
 		;;
 	*)
 		echo "ftm.conf file is not supported for $board " > /dev/console
@@ -407,14 +409,14 @@ do_load_ipq4019_board_bin()
                     mkdir -p ${apdk}/qcn9224
                     do_ftm_conf_override
 
-                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "qcn9224" 
+                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "qcn9224"
             ;;
             ap-mi01.1*|ap-mi01.2*|ap-mi01.4*|ap-mi01.6*|ap-mi01.9*|ap-mi02.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn9224
 
-                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn9224" "0" 
+                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn9224" "0"
             ;;
             ap-mi01.3*| ap-mi01.7*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
@@ -422,7 +424,7 @@ do_load_ipq4019_board_bin()
                     mkdir -p ${apdk}/qcn6432
                     do_ftm_conf_override
 
-                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0" 
+                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0"
             ;;
             ap-mi04.3*| ap-mi04.1*| db-mi02.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
@@ -430,12 +432,29 @@ do_load_ipq4019_board_bin()
                     mkdir -p ${apdk}/qcn6432
                     do_ftm_conf_override
 
-                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0" 
+                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0"
             ;;
             ap-mi*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     create_cfg_caldata "${mtdblock}" "IPQ5332"
+            ;;
+            ap-sdxpinn-qcn9224-V1)
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_1.b0002 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_2.b0004 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_3.b0001 ] && \
+                    return
+                    mkdir -p ${apdk}/qcn9224
+
+                    create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
+            ;;
+            ap-sdxpinn-qcn9224-V2)
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_1.b1003 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_2.b0004 ] && \
+                    return
+                    mkdir -p ${apdk}/qcn9224
+
+                    create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
             ;;
    esac
 }
