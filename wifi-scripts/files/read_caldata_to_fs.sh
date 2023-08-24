@@ -426,6 +426,18 @@ do_load_ipq4019_board_bin()
                     [ -L /lib/firmware/IPQ5332/caldata.bin ] || \
                     cp ${apdk}/IPQ5332/caldata.bin /lib/firmware/IPQ5332/caldata.bin
             ;;
+            ap-sdxpinn-qcn9224*)
+                    [ -f /lib/firmware/qcn9224/caldata_1.bin ] && exit 1;
+
+                    WKK_FILESIZE=184320
+                    mkdir -p ${apdk}/qcn9224
+                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_1.bin bs=1 count=$WKK_FILESIZE skip=157696
+                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_2.bin bs=1 count=$WKK_FILESIZE skip=362496
+                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_3.bin bs=1 count=$WKK_FILESIZE skip=567296
+                    cp ${apdk}/qcn9224/caldata_1.bin /lib/firmware/qcn9224/caldata_1.bin
+                    cp ${apdk}/qcn9224/caldata_2.bin /lib/firmware/qcn9224/caldata_2.bin
+                    cp ${apdk}/qcn9224/caldata_3.bin /lib/firmware/qcn9224/caldata_3.bin
+            ;;
    esac
 }
 
