@@ -58,8 +58,12 @@ define KernelPackage/$(PKG_NAME)/Description
 	This package contains CNSS stream Platform Driver for QTI WLAN Chipsets
 endef
 
-DRV_MAKE_OPTS+=QCA_CNSS_STREAM_MOD=y
 DRV_MAKE_OPTS+=QCA_CNSS_KERNEL_DEPENDENCY=y
+ifneq ($(strip ${CONFIG_LOWMEM_FLASH}),y)
+DRV_MAKE_OPTS+=QCA_CNSS_STREAM_MOD=y
+DRV_MAKE_OPTS+=QCA_CNSS_PCI_SUPPORT=y
+DRV_MAKE_OPTS+=QCA_CNSS_DEBUG_SUPPORT=y
+endif
 ifeq ($(CONFIG_LINUX_6_1),y)
 DRV_MAKE_OPTS+=QCA_CNSS_LINUX_6_1_SUPPORT=y
 endif
