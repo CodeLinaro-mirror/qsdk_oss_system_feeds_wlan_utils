@@ -23,7 +23,12 @@ define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/lib/preinit
 	$(INSTALL_DIR) $(1)/etc/init.d/
 	$(INSTALL_BIN)  ./files/81_load_wifi_board_bin $(1)/lib/preinit
-	$(INSTALL_DATA) ./files/read_caldata_to_fs.sh $(1)/lib
+ifeq ($(strip ${CONFIG_LOWMEM_FLASH}),y)
+	$(INSTALL_DATA) ./files/read_caldata_to_fs_16m.sh $(1)/lib/read_caldata_to_fs.sh
+else
+	$(INSTALL_DATA) ./files/read_caldata_to_fs.sh $(1)/lib/
+endif
+	$(INSTALL_DATA) ./files/create_cfg_caldata.sh $(1)/lib/
 	$(INSTALL_DATA) ./files/wifi_interface_helper.sh $(1)/lib
 	$(INSTALL_DATA) ./files/update_smp_affinity.sh $(1)/lib
 endef
