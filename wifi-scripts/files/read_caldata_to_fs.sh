@@ -319,7 +319,7 @@ do_load_ipq4019_board_bin()
                     cp ${apdk}/qcn9224/caldata_3.bin /lib/firmware/qcn9224/caldata_3.bin
                     cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
             ;;
-            ap-al02-c4*|ap-al02-c6*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al03-c1*|ap-al03-c2*|ap-al02-c20*)
+            ap-al02-c4*|ap-al02-c6*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al03-c1*|ap-al03-c2*|ap-al02-c20*|ap-al06*)
                     [ -f /lib/firmware/IPQ9574/caldata.bin ] && exit 1;
                     AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
