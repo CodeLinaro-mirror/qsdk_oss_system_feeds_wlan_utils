@@ -482,13 +482,32 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn9224" "1"
             ;;
-            ap-mi01.3*|ap-mi04.1*)
+            ap-mi01.3*)
+                    [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
+                    mkdir -p ${apdk}/IPQ5332
+                    mkdir -p ${apdk}/qcn6432
+
+                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432"
+            ;;
+            ap-mi04.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn6432
                     do_ftm_conf_override
 
-                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432"
+                    if [ -e /sys/firmware/devicetree/base/compressed_art ]
+                    then
+                        #FTM Daemon compresses the caldata and writes the lzma file in ART Partition
+                        dd if=${mtdblock} of=${apdk}/virtual_art.bin.lzma
+                        lzma -fdv --single-stream ${apdk}/virtual_art.bin.lzma || {
+                        # Create dummy virtual_art.bin file of size 256K
+                        dd if=/dev/zero of=${apdk}/virtual_art.bin bs=1024 count=256
+                        }
+
+                        create_cfg_caldata "${apdk}/virtual_art.bin" "IPQ5332" "qcn6432"
+                    else
+                        create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432"
+                    fi
             ;;
             ap-mi*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
