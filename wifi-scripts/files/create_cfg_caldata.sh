@@ -18,9 +18,10 @@
 create_cfg_caldata() {
 	local brd=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
 
-	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v is_wkk=$4 -v board=$brd '{
+	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd '{
 		if ($1 == board) {
 			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5
+			BDF_SIZE=0
 			if ($3 == 0) {
 				print "Internal radio"
 				cmd ="stat -Lc%s /lib/firmware/" ahb_dir "/bdwlan.b" $2 " 2> /dev/null"
@@ -36,19 +37,26 @@ create_cfg_caldata() {
 				system(cmd)
 			} else {
 				print "PCI radio"
-				cmd ="stat -Lc%s /lib/firmware/" pci_dir "/bdwlan.b" $2 " 2> /dev/null"
+				dir_lib=pci_dir
+				if ($3 == 2){
+					print "Inside slot instance 2"
+					if (pci1_dir != 0) {
+						dir_lib=pci1_dir
+					}
+				}
+				cmd ="stat -Lc%s /lib/firmware/" dir_lib "/bdwlan.b" $2 " 2> /dev/null"
 				cmd | getline BDF_SIZE
 				close(cmd)
 				if(!BDF_SIZE) {
 					print "BDF file for Board id " $2 " not found. Using default value"
-					if (is_wkk == 1)
+					if (dir_lib == "qcn9224")
 						BDF_SIZE=184320
 					else
 						BDF_SIZE=131072
 				}
-				cmd = "dd if="mtdblock" of=" apdk pci_dir "/caldata_" $3 ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
+				cmd = "dd if="mtdblock" of=" apdk dir_lib "/caldata_" $3 ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
-				cmd = "cp " apdk pci_dir "/caldata_" $3 ".b" $2 " /lib/firmware/" pci_dir "/"
+				cmd = "cp " apdk dir_lib "/caldata_" $3 ".b" $2 " /lib/firmware/" dir_lib "/"
 				system(cmd)
 			}
 		}
