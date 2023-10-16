@@ -18,6 +18,57 @@
 . /lib/functions.sh
 . /lib/create_cfg_caldata.sh
 
+#This API is used only for 16M cases. 
+#16M platform has very little busy box, so the existing system commands used in primary script 
+# cannot be used here. So, writing a simple routine to parse the ftm.conf and create caldata
+create_cfg_caldata_16m()
+{
+    local brd=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+    local grep_val=$(grep $brd /ini/ftm.conf)
+    local num_rows="$(grep -w -c $brd /ini/ftm.conf)"
+    local apdk="/tmp"
+
+    # Always initialize with Integrated/Platform FW directory
+    ahb_dir=$2
+
+    # Loop to process the output
+    for i in `seq 1 $num_rows`
+    do
+        if [ $i == "2" ]
+        then
+            ahb_dir=$3
+        fi
+
+        #Parse the FTM.conf file and Get the Values
+        ROW_VAL=$(echo $grep_val | awk -v i=$i '{print $i}')
+        BOARD_ID=$(echo $ROW_VAL | awk -F ',' '{print $2}')
+        SLOT_ID=$(echo $ROW_VAL | awk -F ',' '{print $3}')
+        OFFSET=$(echo $ROW_VAL | awk -F ',' '{print $4}')
+        SIZE=$(echo $ROW_VAL | awk -F ',' '{print $5}')
+
+        echo -e $brd "\t" $BOARD_ID "\t"  $SLOT_ID "\t" $OFFSET "\t" $SIZE
+
+        #Get the BDF size
+        BDF_SIZE=$(stat -Lc%s /lib/firmware/"$ahb_dir"/bdwlan.b"$BOARD_ID")
+
+        if [ -z $BDF_SIZE ]
+        then
+            BDF_SIZE=131072
+        fi
+
+        echo "BDF_SIZE -" $BDF_SIZE
+
+        if [ $i == "2" ]
+        then
+            cmd=$(dd if=$1 of="$apdk"/"$ahb_dir"/caldata_"$SLOT_ID".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
+            cp -f "$apdk"/"$ahb_dir"/caldata_"$SLOT_ID".b"$BOARD_ID" /lib/firmware/"$ahb_dir"/
+        else
+            cmd=$(dd if=$1 of="$apdk"/"$ahb_dir"/caldata.bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
+            cp -f "$apdk"/"$ahb_dir"/caldata.bin /lib/firmware/"$ahb_dir"/
+        fi
+    done
+}
+
 do_load_ipq4019_board_bin()
 {
 
@@ -50,15 +101,15 @@ do_load_ipq4019_board_bin()
                         dd if=/dev/zero of=${apdk}/virtual_art.bin bs=1024 count=256
                         }
 
-                        create_cfg_caldata "${apdk}/virtual_art.bin" "IPQ5332" "qcn6432" "0" 
+                        create_cfg_caldata_16m "${apdk}/virtual_art.bin" "IPQ5332" "qcn6432" "0" 
                     else
-                    	create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0" 
+                    	create_cfg_caldata_16m "${mtdblock}" "IPQ5332" "qcn6432" "0" 
                     fi
             ;;
             ap-mi*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
-                    create_cfg_caldata "${mtdblock}" "IPQ5332"
+                    create_cfg_caldata_16m "${mtdblock}" "IPQ5332"
             ;;
    esac
 }
