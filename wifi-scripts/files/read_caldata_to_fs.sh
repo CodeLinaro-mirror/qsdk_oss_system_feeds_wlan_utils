@@ -404,6 +404,7 @@ do_load_ipq4019_board_bin()
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn6432
                     mkdir -p ${apdk}/qcn9224
+                    do_ftm_conf_override
 
                     create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "qcn9224" 
             ;;
@@ -418,6 +419,7 @@ do_load_ipq4019_board_bin()
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn6432
+                    do_ftm_conf_override
 
                     create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0" 
             ;;
