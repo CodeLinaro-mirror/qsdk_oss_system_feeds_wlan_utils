@@ -67,26 +67,43 @@ create_cfg_caldata() {
 
 do_ftm_conf_override()
 {
-        #Necessary conditon check, This method will be invoked only for Miami+Pebble RDP's
+        #Necessary conditon check, This method will be invoked only for below mentioned RDP's
         #Inside this API, we will update the ftm.conf file with DTS board ID values maintained.
-        #This is applicable only for IPA RDP's, For other M+P RDP's return [Do nothing]
+        #This is applicable only for below mentioned RDP's, For other RDP's return [Do nothing]
         local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+        local board_id_2g
+        local board_id_5g
+        local board_id_6g
 
         case "$board" in
-                ap-mi04.1*)
+                ap-mi04.1*|ap-mi01.3*)
+                board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
+                board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
+                board_id_6g=`hexdump -C /proc/device-tree/soc/wifi5@f00000/qcom,board_id | awk '{print $5}'`
+                        ;;
+                ap-mi01.12)
+                board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
+                board_id_5g=`hexdump -C /proc/device-tree/soc/wifi2@f00000/board_id | awk '{print $5}'`
+                board_id_6g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
+                        ;;
+                ap-mi01.14)
+                board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
+                board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
+                board_id_6g=`hexdump -C /proc/device-tree/soc/wifi2@f00000/board_id | awk '{print $5}'`
                         ;;
                 *)
                         echo "Board name is $board -do_ftm_conf_override API not applicable" > /dev/console && return
                 ;;
         esac
 
-        local board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
-        local board_id_6g=`hexdump -C /proc/device-tree/soc/wifi5@f00000/qcom,board_id | awk '{print $5}'`
-
-        awk -F',' -v board=$board -v board_id_5g=$board_id_5g -v board_id_6g=$board_id_6g '{
+        awk -F',' -v board=$board -v board_id_2g=$board_id_2g -v board_id_5g=$board_id_5g -v board_id_6g=$board_id_6g '{
                 if ($1 == board) {
                         print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" NR
                         lineNumber=NR
+                        if ($3 == 0){
+                                print "2G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_2g
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" board_id_2g "\/" " /ini/ftm.conf"
+                        }
                         if ($3 == 1){
                                 print "5G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_5g
                                 cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/" " /ini/ftm.conf"
