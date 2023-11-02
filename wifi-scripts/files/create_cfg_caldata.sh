@@ -16,7 +16,8 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 create_cfg_caldata() {
-	local brd=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+       local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+       local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
 
 	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd '{
 		if ($1 == board) {
@@ -70,7 +71,8 @@ do_ftm_conf_override()
         #Necessary conditon check, This method will be invoked only for below mentioned RDP's
         #Inside this API, we will update the ftm.conf file with DTS board ID values maintained.
         #This is applicable only for below mentioned RDP's, For other RDP's return [Do nothing]
-        local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+        local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+        local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
         local board_id_2g
         local board_id_5g
         local board_id_6g
