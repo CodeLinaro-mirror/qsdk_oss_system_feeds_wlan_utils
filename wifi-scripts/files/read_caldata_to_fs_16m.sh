@@ -23,7 +23,8 @@
 # cannot be used here. So, writing a simple routine to parse the ftm.conf and create caldata
 create_cfg_caldata_16m()
 {
-    local brd=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+    local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+    local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
     local grep_val=$(grep $brd /ini/ftm.conf)
     local num_rows="$(grep -w -c $brd /ini/ftm.conf)"
     local apdk="/tmp"
@@ -71,8 +72,8 @@ create_cfg_caldata_16m()
 
 do_load_ipq4019_board_bin()
 {
-
-    local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+    local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+    local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
     local mtdblock=$(find_mtd_part 0:ART)
 
     local apdk="/tmp"

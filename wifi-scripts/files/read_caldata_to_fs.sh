@@ -19,14 +19,14 @@
 . /lib/create_cfg_caldata.sh
 
 is_ftm_conf_supported() {
-	local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+       local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+       local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
 
 	case "$board" in
-	ap-mi*|ap-al02-c4*)
+	ap-mi*|ap-al02-c4*|db-mi02.1*)
 		;;
 	*)
 		echo "ftm.conf file is not supported for $board " > /dev/console
-		rm -rf /ini/ftm.conf
 		;;
 	esac
 }
@@ -36,7 +36,8 @@ is_ftm_conf_supported
 do_load_ipq4019_board_bin()
 {
 
-    local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+    local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+    local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
     local mtdblock=$(find_mtd_part 0:ART)
 
     local apdk="/tmp"
@@ -423,7 +424,7 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0" 
             ;;
-            ap-mi04.1*)
+            ap-mi04.1*| db-mi02.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn6432
