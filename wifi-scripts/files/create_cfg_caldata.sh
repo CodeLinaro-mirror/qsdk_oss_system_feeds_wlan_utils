@@ -78,7 +78,7 @@ do_ftm_conf_override()
         local board_id_6g
 
         case "$board" in
-                ap-mi04.1*|ap-mi01.3*)
+                ap-mi04.3*|ap-mi04.1*|ap-mi01.3*)
                 board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
                 board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
                 board_id_6g=`hexdump -C /proc/device-tree/soc/wifi5@f00000/qcom,board_id | awk '{print $5}'`
