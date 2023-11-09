@@ -424,7 +424,7 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn6432" "0" 
             ;;
-            ap-mi04.1*| db-mi02.1*)
+            ap-mi04.3*| ap-mi04.1*| db-mi02.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn6432
