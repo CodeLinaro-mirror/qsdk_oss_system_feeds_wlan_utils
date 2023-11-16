@@ -22,7 +22,6 @@ endef
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/lib/preinit
 	$(INSTALL_DIR) $(1)/etc/init.d/
-	$(INSTALL_BIN)  ./files/81_load_wifi_board_bin $(1)/lib/preinit
 ifeq ($(strip ${CONFIG_LOWMEM_FLASH}),y)
 	$(INSTALL_DATA) ./files/read_caldata_to_fs_16m.sh $(1)/lib/read_caldata_to_fs.sh
 else
