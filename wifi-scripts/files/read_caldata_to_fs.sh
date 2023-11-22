@@ -17,14 +17,15 @@
 . /lib/functions.sh
 
 is_ftm_conf_supported() {
-	local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+	local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
 
 	case "$board" in
-	ap-mi*|ap-al02-c4*)
+	ap-mi*|ap-al02-c4*|ap-al02-c6*|ap-al05*|ap-al06*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al02-c20*|ap-al03-c1*|ap-al03-c2*|db-mi02.1*)
 		;;
 	*)
 		echo "ftm.conf file is not supported for $board " > /dev/console
-		rm -rf /ini/ftm.conf
+		rm -rf /lib/firmware/ftm.conf
 		;;
 	esac
 }
@@ -32,12 +33,16 @@ is_ftm_conf_supported() {
 is_ftm_conf_supported
 
 create_cfg_caldata() {
-	local brd=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+	local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
 
-	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v is_wkk=$4 -v board=$brd '{
+	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd '{
 		if ($1 == board) {
-			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5
-			if ($3 == 0) {
+			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6
+	                file_suffix=$6+1
+			BDF_SIZE=0
+
+			if ($6 == 255) {
 				print "Internal radio"
 				cmd ="stat -Lc%s /lib/firmware/" ahb_dir "/bdwlan.b" $2 " 2> /dev/null"
 				cmd | getline BDF_SIZE
@@ -46,29 +51,36 @@ create_cfg_caldata() {
 					print "BDF file for Board id " $2 " not found. Using default value"
 					BDF_SIZE=131072
 				}
-				cmd = "dd if="mtdblock" of=" apdk ahb_dir "/caldata.bin bs=1 count=" BDF_SIZE " skip=" $4
+                                cmd = "dd if="mtdblock" of=" apdk ahb_dir "/caldata.bin bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
 				cmd = "cp " apdk ahb_dir "/caldata.bin /lib/firmware/" ahb_dir "/"
 				system(cmd)
 			} else {
 				print "PCI radio"
-				cmd ="stat -Lc%s /lib/firmware/" pci_dir "/bdwlan.b" $2 " 2> /dev/null"
+                                dir_lib=pci_dir
+                                if ($3 == 2){
+                                        print "Inside slot instance 2"
+                                        if (pci1_dir != 0) {
+                                               dir_lib=pci1_dir
+                                        }
+                                }
+				cmd ="stat -Lc%s /lib/firmware/" dir_lib "/bdwlan.b" $2 " 2> /dev/null"
 				cmd | getline BDF_SIZE
 				close(cmd)
 				if(!BDF_SIZE) {
 					print "BDF file for Board id " $2 " not found. Using default value"
-					if (is_wkk == 1)
+					if (dir_lib == "qcn9224")
 						BDF_SIZE=184320
 					else
 						BDF_SIZE=131072
 				}
-				cmd = "dd if="mtdblock" of=" apdk pci_dir "/caldata_" $3 ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
+				cmd = "dd if="mtdblock" of=" apdk dir_lib "/caldata_" file_suffix ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
-				cmd = "cp " apdk pci_dir "/caldata_" $3 ".b" $2 " /lib/firmware/" pci_dir "/"
+				cmd = "cp " apdk dir_lib "/caldata_" file_suffix ".b" $2 " /lib/firmware/" dir_lib "/"
 				system(cmd)
 			}
 		}
-	}' /ini/ftm.conf
+	}' /lib/firmware/ftm.conf
 
 	[ -f /lib/firmware/$2/caldata.bin ] || touch /lib/firmware/$2/caldata.bin
 }
@@ -76,7 +88,8 @@ create_cfg_caldata() {
 do_load_ipq4019_board_bin()
 {
 
-    local board=ap$(echo $(board_name) | awk -F 'ap' '{print$2}')
+    local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+    local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
     local mtdblock=$(find_mtd_part 0:ART)
 
     local apdk="/tmp"
@@ -351,61 +364,18 @@ do_load_ipq4019_board_bin()
             ;;
             ap-al02-c13*)
                     [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
-                    AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
                     mkdir -p ${apdk}/IPQ9574
-                    if [ -f "$AL_BD_FILENAME" ]; then
-                        FILESIZE=$(stat -Lc%s "$AL_BD_FILENAME")
-                    else
-                        FILESIZE=131072
-                    fi
-                    dd if=${mtdblock} of=${apdk}/IPQ9574/caldata.bin bs=1 count=$FILESIZE skip=4096
-                    [ -L /lib/firmware/IPQ9574/caldata.bin ] || \
-                    cp ${apdk}/IPQ9574/caldata.bin /lib/firmware/IPQ9574/caldata.bin
-
-                    # PCI0 IS QCN9000 Scan radio
                     mkdir -p ${apdk}/qcn9000
-                    dd if=${mtdblock} of=${apdk}/qcn9000/caldata_1.bin bs=1 count=$FILESIZE skip=157696
-                    cp ${apdk}/qcn9000/caldata_1.bin /lib/firmware/qcn9000/caldata_1.bin
-
-                    WKK_FILESIZE=184320
                     mkdir -p ${apdk}/qcn9224
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_2.bin bs=1 count=$WKK_FILESIZE skip=362496
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_3.bin bs=1 count=$WKK_FILESIZE skip=567296
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_4.bin bs=1 count=$WKK_FILESIZE skip=772096
-                    cp ${apdk}/qcn9224/caldata_2.bin /lib/firmware/qcn9224/caldata_2.bin
-                    cp ${apdk}/qcn9224/caldata_3.bin /lib/firmware/qcn9224/caldata_3.bin
-                    cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
+      
+                    create_cfg_caldata "${mtdblock}" "IPQ9574" "qcn9000" "qcn9224"
             ;;
-            ap-al02-c6*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al03-c1*|ap-al03-c2*)
-                    [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
-                    AL_BD_FILENAME=/lib/firmware/IPQ9574/bdwlan.bin
-                    mkdir -p ${apdk}/IPQ9574
-                    if [ -f "$AL_BD_FILENAME" ]; then
-                        FILESIZE=$(stat -Lc%s "$AL_BD_FILENAME")
-                    else
-                        FILESIZE=131072
-                    fi
-                    dd if=${mtdblock} of=${apdk}/IPQ9574/caldata.bin bs=1 count=$FILESIZE skip=4096
-                    [ -L /lib/firmware/IPQ9574/caldata.bin ] || \
-                    cp ${apdk}/IPQ9574/caldata.bin /lib/firmware/IPQ9574/caldata.bin
-
-                    WKK_FILESIZE=184320
-                    mkdir -p ${apdk}/qcn9224
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_1.bin bs=1 count=$WKK_FILESIZE skip=157696
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_2.bin bs=1 count=$WKK_FILESIZE skip=362496
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_3.bin bs=1 count=$WKK_FILESIZE skip=567296
-                    dd if=${mtdblock} of=${apdk}/qcn9224/caldata_4.bin bs=1 count=$WKK_FILESIZE skip=772096
-                    cp ${apdk}/qcn9224/caldata_1.bin /lib/firmware/qcn9224/caldata_1.bin
-                    cp ${apdk}/qcn9224/caldata_2.bin /lib/firmware/qcn9224/caldata_2.bin
-                    cp ${apdk}/qcn9224/caldata_3.bin /lib/firmware/qcn9224/caldata_3.bin
-                    cp ${apdk}/qcn9224/caldata_4.bin /lib/firmware/qcn9224/caldata_4.bin
-            ;;
-            ap-al02-c4*)
+            ap-al02-c4*|ap-al02-c6*|ap-al05*|ap-al06*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al02-c20*|ap-al03-c1*|ap-al03-c2*)
                     [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
                     mkdir -p ${apdk}/IPQ9574
                     mkdir -p ${apdk}/qcn9224
 
-                    create_cfg_caldata "${mtdblock}" "IPQ9574" "qcn9224" "1"
+                    create_cfg_caldata "${mtdblock}" "IPQ9574" "qcn9224" "0"
             ;;
             ap-al02*)
                     [ -f /lib/firmware/IPQ9574/caldata.bin ] && return
@@ -444,7 +414,7 @@ do_load_ipq4019_board_bin()
                     mkdir -p ${apdk}/IPQ5332
                     mkdir -p ${apdk}/qcn9224
 
-                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn9224" "1"
+                    create_cfg_caldata "${mtdblock}" "IPQ5332" "qcn9224" "0"
             ;;
             ap-mi01.3*|ap-mi04.1*)
                     [ -f /lib/firmware/IPQ5332/caldata.bin ] && return
