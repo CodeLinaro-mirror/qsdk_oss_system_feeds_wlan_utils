@@ -78,9 +78,7 @@ endif
 
 define Build/Compile
 	export CONFIG_BUILD_QSDK="$(CONFIG_BUILD_QSDK)"; \
-	$(MAKE) -C "$(LINUX_DIR)" $(strip $(DRV_MAKE_OPTS)) \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		ARCH="$(LINUX_KARCH)" \
+	$(KERNEL_MAKE) -C "$(LINUX_DIR)" $(strip $(DRV_MAKE_OPTS)) \
 		M="$(PKG_BUILD_DIR)" \
 		modules
 endef
