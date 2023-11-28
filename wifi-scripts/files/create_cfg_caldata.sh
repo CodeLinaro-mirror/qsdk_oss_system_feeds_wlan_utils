@@ -15,17 +15,62 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-create_cfg_caldata() {
-       local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
-       local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
+get_config_file_path()
+{
+	local file_type brd_name board
+	local ini_path
+	local caldata_path
 
-	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd '{
+	if [[ $# -ne 1 ]]; then
+		return
+	fi
+
+	file_type="$1"
+
+	case "$file_type" in
+	ini|caldata) ;;
+	*) return ;;
+	esac
+
+	[ -f /tmp/sysinfo/board_name ] && {
+		brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+		board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
+	}
+
+	case "$board" in
+	ap-sdxlemur* | ap-sdxpinn*)
+		ini_path="/etc/misc/ipq/ini"
+		caldata_path="/data/vendor/wifi/caldata"
+	;;
+	*)
+		ini_path="/ini"
+		caldata_path="/lib/firmware"
+	;;
+	esac
+
+	case "$file_type" in
+	ini)
+		echo "$ini_path"
+	;;
+	caldata)
+		echo "$caldata_path"
+	;;
+	esac
+}
+
+create_cfg_caldata() {
+	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
+	local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
+	local ini_path=$(get_config_file_path "ini")
+	local fw_caldata=$(get_config_file_path "caldata")
+
+	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd -v fw_path=$fw_caldata '{
 		if ($1 == board) {
 			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5
 			BDF_SIZE=0
 			if ($3 == 0) {
 				print "Internal radio"
-				cmd ="stat -Lc%s /lib/firmware/" ahb_dir "/bdwlan.b" $2 " 2> /dev/null"
+				cmd ="stat -Lc%s " fw_path "/" ahb_dir "/bdwlan.b" $2 " 2> /dev/null"
 				cmd | getline BDF_SIZE
 				close(cmd)
 				if(!BDF_SIZE) {
@@ -34,7 +79,7 @@ create_cfg_caldata() {
 				}
 				cmd = "dd if="mtdblock" of=" apdk ahb_dir "/caldata.bin bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
-				cmd = "cp " apdk ahb_dir "/caldata.bin /lib/firmware/" ahb_dir "/"
+				cmd = "cp " apdk ahb_dir "/caldata.bin " fw_path "/" ahb_dir "/"
 				system(cmd)
 			} else {
 				print "PCI radio"
@@ -45,7 +90,7 @@ create_cfg_caldata() {
 						dir_lib=pci1_dir
 					}
 				}
-				cmd ="stat -Lc%s /lib/firmware/" dir_lib "/bdwlan.b" $2 " 2> /dev/null"
+				cmd ="stat -Lc%s " fw_path "/" dir_lib "/bdwlan.b" $2 " 2> /dev/null"
 				cmd | getline BDF_SIZE
 				close(cmd)
 				if(!BDF_SIZE) {
@@ -57,13 +102,20 @@ create_cfg_caldata() {
 				}
 				cmd = "dd if="mtdblock" of=" apdk dir_lib "/caldata_" $3 ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
-				cmd = "cp " apdk dir_lib "/caldata_" $3 ".b" $2 " /lib/firmware/" dir_lib "/"
+				cmd = "cp " apdk dir_lib "/caldata_" $3 ".b" $2 " " fw_path "/" dir_lib "/"
 				system(cmd)
 			}
 		}
-	}' /ini/ftm.conf
+	}' $ini_path/ftm.conf
 
-	[ -f /lib/firmware/$2/caldata.bin ] || touch /lib/firmware/$2/caldata.bin
+	case "$brd" in
+	ap-sdxpinn*)
+		;;
+	*)
+		[ -f $fw_caldata/$2/caldata.bin ] || touch $fw_caldata/$2/caldata.bin
+		;;
+	esac
+
 }
 
 do_ftm_conf_override()
@@ -73,6 +125,7 @@ do_ftm_conf_override()
         #This is applicable only for below mentioned RDP's, For other RDP's return [Do nothing]
         local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
         local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
+	local ini_path=$(get_config_file_path "ini")
         local board_id_2g
         local board_id_5g
         local board_id_6g
@@ -108,14 +161,14 @@ do_ftm_conf_override()
                         }
                         if ($3 == 1){
                                 print "5G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_5g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/" " /ini/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/" " $ini_path/ftm.conf"
                         }
                         else if($3 == 2)
                         {
                                 print "6G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_6g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_6g "\/" " /ini/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_6g "\/" " $ini_path/ftm.conf"
                         }
                         system(cmd)
                 }
-        }' /ini/ftm.conf
+        }' $ini_path/ftm.conf
 }
