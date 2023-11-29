@@ -18,15 +18,16 @@
 . /lib/functions.sh
 . /lib/create_cfg_caldata.sh
 
-#This API is used only for 16M cases. 
-#16M platform has very little busy box, so the existing system commands used in primary script 
+#This API is used only for 16M cases.
+#16M platform has very little busy box, so the existing system commands used in primary script
 # cannot be used here. So, writing a simple routine to parse the ftm.conf and create caldata
 create_cfg_caldata_16m()
 {
     local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
     local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
-    local grep_val=$(grep $brd /ini/ftm.conf)
-    local num_rows="$(grep -w -c $brd /ini/ftm.conf)"
+    local ini_path=$(get_config_file_path "ini")
+    local grep_val=$(grep $brd $ini_path/ftm.conf)
+    local num_rows="$(grep -w -c $brd $ini_path/ftm.conf)"
     local apdk="/tmp"
 
     # Always initialize with Integrated/Platform FW directory
