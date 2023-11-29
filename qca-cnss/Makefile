@@ -65,8 +65,8 @@ DRV_MAKE_OPTS+=QCA_CNSS_STREAM_MOD=y
 DRV_MAKE_OPTS+=QCA_CNSS_PCI_SUPPORT=y
 DRV_MAKE_OPTS+=QCA_CNSS_DEBUG_SUPPORT=y
 endif
-ifeq ($(CONFIG_LINUX_6_1),y)
-DRV_MAKE_OPTS+=QCA_CNSS_LINUX_6_1_SUPPORT=y
+ifeq ($(strip ${CONFIG_LINUX_6_1}${CONFIG_LINUX_6_6}),y)
+DRV_MAKE_OPTS+=QCA_CNSS_LINUX_6_x_SUPPORT=y
 endif
 
 ifeq ($(strip ${CONFIG_KERNEL_IPQ_MEM_PROFILE}),256)
@@ -85,6 +85,6 @@ define Build/Compile
 endef
 
 $(eval $(call KernelPackage,$(PKG_NAME)))
-ifneq ($(CONFIG_LINUX_6_1),y)
+ifneq ($(strip ${CONFIG_LINUX_6_1}${CONFIG_LINUX_6_6}),y)
 $(eval $(call KernelPackage,$(PKG_NAME)-stream))
 endif
