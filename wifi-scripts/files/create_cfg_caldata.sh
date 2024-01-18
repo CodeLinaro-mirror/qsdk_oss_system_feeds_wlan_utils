@@ -61,14 +61,14 @@ get_config_file_path()
 create_cfg_caldata() {
 	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
 	local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
-	local ini_path=$(get_config_file_path "ini")
 	local fw_caldata=$(get_config_file_path "caldata")
 
 	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd -v fw_path=$fw_caldata '{
 		if ($1 == board) {
-			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5
+			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6
+                        file_suffix=$6+1
 			BDF_SIZE=0
-			if ($3 == 0) {
+			if ($6 == 255) {
 				print "Internal radio"
 				cmd ="stat -Lc%s " fw_path "/" ahb_dir "/bdwlan.b" $2 " 2> /dev/null"
 				cmd | getline BDF_SIZE
@@ -100,13 +100,13 @@ create_cfg_caldata() {
 					else
 						BDF_SIZE=131072
 				}
-				cmd = "dd if="mtdblock" of=" apdk dir_lib "/caldata_" $3 ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
+				cmd = "dd if="mtdblock" of=" apdk dir_lib "/caldata_" file_suffix ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
-				cmd = "cp " apdk dir_lib "/caldata_" $3 ".b" $2 " " fw_path "/" dir_lib "/"
+				cmd = "cp " apdk dir_lib "/caldata_" file_suffix ".b" $2 " " fw_path "/" dir_lib "/"
 				system(cmd)
 			}
 		}
-	}' $ini_path/ftm.conf
+	}' $fw_caldata/ftm.conf
 
 	case "$brd" in
 	ap-sdxpinn*)
@@ -125,7 +125,7 @@ do_ftm_conf_override()
         #This is applicable only for below mentioned RDP's, For other RDP's return [Do nothing]
         local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
         local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
-	local ini_path=$(get_config_file_path "ini")
+        local ftm_conf_path=$(get_config_file_path "caldata")
         local board_id_2g
         local board_id_5g
         local board_id_6g
@@ -135,11 +135,6 @@ do_ftm_conf_override()
                 board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
                 board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
                 board_id_6g=`hexdump -C /proc/device-tree/soc/wifi5@f00000/qcom,board_id | awk '{print $5}'`
-                        ;;
-                ap-mi01.12)
-                board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
-                board_id_5g=`hexdump -C /proc/device-tree/soc/wifi2@f00000/board_id | awk '{print $5}'`
-                board_id_6g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
                         ;;
                 ap-mi01.14)
                 board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
@@ -153,22 +148,22 @@ do_ftm_conf_override()
 
         awk -F',' -v board=$board -v board_id_2g=$board_id_2g -v board_id_5g=$board_id_5g -v board_id_6g=$board_id_6g '{
                 if ($1 == board) {
-                        print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" NR
+                        print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" NR
                         lineNumber=NR
                         if ($3 == 0){
                                 print "2G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_2g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" board_id_2g "\/" " /ini/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" board_id_2g "\/" " $ftm_conf_path/ftm.conf"
                         }
                         if ($3 == 1){
                                 print "5G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_5g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/" " $ini_path/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/" " $ftm_conf_path/ftm.conf"
                         }
                         else if($3 == 2)
                         {
                                 print "6G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_6g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_6g "\/" " $ini_path/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_6g "\/" " $ftm_conf_path/ftm.conf"
                         }
                         system(cmd)
                 }
-        }' $ini_path/ftm.conf
+        }' $ftm_conf_path/ftm.conf
 }

@@ -25,9 +25,9 @@ create_cfg_caldata_16m()
 {
     local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
     local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
-    local ini_path=$(get_config_file_path "ini")
-    local grep_val=$(grep $brd $ini_path/ftm.conf)
-    local num_rows="$(grep -w -c $brd $ini_path/ftm.conf)"
+    local ftm_conf_path=$(get_config_file_path "caldata")
+    local grep_val=$(grep $brd $ftm_conf_path/ftm.conf)
+    local num_rows="$(grep -w -c $brd $ftm_conf_path/ftm.conf)"
     local apdk="/tmp"
 
     # Always initialize with Integrated/Platform FW directory
