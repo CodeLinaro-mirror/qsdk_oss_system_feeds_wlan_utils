@@ -97,6 +97,9 @@ create_cfg_caldata() {
 					print "BDF file for Board id " $2 " not found. Using default value"
 					if (dir_lib == "qcn9224")
 						BDF_SIZE=184320
+					#Adding additional condition check for pebble wideband case
+					else if (dir_lib == "qcn6432" && $2 == 0070)
+						BDF_SIZE=168960
 					else
 						BDF_SIZE=131072
 				}
