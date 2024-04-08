@@ -15,7 +15,7 @@ define Package/$(PKG_NAME)
   URL:=http://www.qca.qualcomm.com
   MAINTAINER:=Qualcomm Atheros
   TITLE:= QCA wifi scripts for kernel5.4
-  DEPENDS:=@TARGET_ipq807x||TARGET_ipq50xx||TARGET_ipq60xx||TARGET_ipq95xx||TARGET_ipq53xx
+  DEPENDS:=@TARGET_ipq807x||TARGET_ipq50xx||TARGET_ipq60xx||TARGET_ipq95xx||TARGET_ipq53xx||TARGET_ipq54xx
 endef
 
 
