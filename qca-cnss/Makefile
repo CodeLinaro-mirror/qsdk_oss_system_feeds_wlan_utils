@@ -14,6 +14,9 @@ endif
 
 include $(INCLUDE_DIR)/package.mk
 
+MKHASH ?= $(STAGING_DIR_HOST)/bin/mkhash
+PKG_BUILD_ID:=$(shell date | $(MKHASH) md5)
+
 define KernelPackage/$(PKG_NAME)
 	SECTION:=kernel
 	CATEGORY:=Kernel modules
