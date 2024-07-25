@@ -14,6 +14,9 @@ endif
 
 include $(INCLUDE_DIR)/package.mk
 
+MKHASH ?= $(STAGING_DIR_HOST)/bin/mkhash
+PKG_BUILD_ID:=$(shell date | $(MKHASH) md5)
+
 define KernelPackage/$(PKG_NAME)
 	SECTION:=kernel
 	CATEGORY:=Kernel modules
@@ -73,8 +76,16 @@ ifeq ($(strip ${CONFIG_KERNEL_IPQ_MEM_PROFILE}),256)
 DRV_MAKE_OPTS+=QCA_CNSS_LOWMEM_PROFILE=y
 endif
 
+ifeq ($(strip ${CONFIG_TARGET_ipq53xx}${CONFIG_TARGET_ipq54xx}),y)
+DRV_MAKE_OPTS+=ENABLE_FW_MOUNT_SUPPORT=y
+endif
+
 ifeq ($(strip ${CONFIG_TARGET_ipq53xx}),y)
 DRV_MAKE_OPTS+=ENABLE_QCA5332_HEADER=y
+endif
+
+ifeq ($(strip ${CONFIG_TARGET_ipq54xx}),y)
+DRV_MAKE_OPTS+=ENABLE_QCA5424_HEADER=y
 endif
 
 define Build/Compile
