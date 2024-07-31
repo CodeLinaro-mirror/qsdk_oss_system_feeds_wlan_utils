@@ -149,22 +149,22 @@ do_ftm_conf_override()
                 ;;
         esac
 
-        awk -F',' -v board=$board -v board_id_2g=$board_id_2g -v board_id_5g=$board_id_5g -v board_id_6g=$board_id_6g '{
+        awk -F',' -v board=$board -v board_id_2g=$board_id_2g -v board_id_5g=$board_id_5g -v board_id_6g=$board_id_6g -v ftm_conf_path=$ftm_conf_path '{
                 if ($1 == board) {
                         print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" NR
                         lineNumber=NR
                         if ($3 == 0){
                                 print "2G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_2g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" board_id_2g "\/" " $ftm_conf_path/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" board_id_2g "\/ " ftm_conf_path "/ftm.conf"
                         }
                         if ($3 == 1){
                                 print "5G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_5g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/" " $ftm_conf_path/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_5g "\/ " ftm_conf_path "/ftm.conf"
                         }
                         else if($3 == 2)
                         {
                                 print "6G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_6g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_6g "\/" " $ftm_conf_path/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_6g "\/ " ftm_conf_path "/ftm.conf"
                         }
                         system(cmd)
                 }
