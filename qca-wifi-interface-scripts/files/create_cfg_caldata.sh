@@ -132,23 +132,42 @@ do_ftm_conf_override()
         local board_id_2g
         local board_id_5g
         local board_id_6g
+        local ker_ver=`uname -r |cut -d. -f1`
 
-        case "$board" in
-                ap-mi04.3*|ap-mi04.1*|ap-mi01.3*)
-                board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
-                board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
-                board_id_6g=`hexdump -C /proc/device-tree/soc/wifi5@f00000/qcom,board_id | awk '{print $5}'`
-                        ;;
-                ap-mi01.14)
-                board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
-                board_id_5g=`hexdump -C /proc/device-tree/soc/wifi1@f00000/qcom,board_id | awk '{print $5}'`
-                board_id_6g=`hexdump -C /proc/device-tree/soc/wifi2@f00000/board_id | awk '{print $5}'`
-                        ;;
-                *)
-                        echo "Board name is $board -do_ftm_conf_override API not applicable" > /dev/console && return
-                ;;
-        esac
-
+        if [ $ker_ver -ge 6 ]; then
+            case "$board" in
+                    ap-mi04.3*|ap-mi04.1*|ap-mi01.3*|ap-mi01.14)
+                    board_id_2g=`hexdump -C /proc/device-tree/soc@0/wifi@c0000000/qcom,board_id | awk '{print $5}'`
+                    board_id_5g=`hexdump -C /proc/device-tree/soc@0/wifi1@c0000000/qcom,board_id | awk '{print $5}'`
+                    board_id_6g=`hexdump -C /proc/device-tree/soc@0/wifi2@c0000000/qcom,board_id | awk '{print $5}'`
+                    case "$board" in
+                            ap-mi01.14)
+                            board_id_6g=`hexdump -C /proc/device-tree/soc@0/wifi3@f00000/board_id | awk '{print $5}'`
+                                    ;;
+                    esac
+                            ;;
+                    *)
+                            echo "Board name is $board -do_ftm_conf_override API not applicable" > /dev/console && return
+                    ;;
+            esac
+        else
+            case "$board" in
+                    ap-mi04.3*|ap-mi04.1*|ap-mi01.3*|ap-mi01.14)
+                    board_id_2g=`hexdump -C /proc/device-tree/soc/wifi@c0000000/qcom,board_id | awk '{print $5}'`
+                    board_id_5g=`hexdump -C /proc/device-tree/soc/wifi4@f00000/qcom,board_id | awk '{print $5}'`
+                    board_id_6g=`hexdump -C /proc/device-tree/soc/wifi5@f00000/qcom,board_id | awk '{print $5}'`
+                    case "$board" in
+                            ap-mi01.14)
+                            board_id_5g=`hexdump -C /proc/device-tree/soc/wifi1@f00000/qcom,board_id | awk '{print $5}'`
+                            board_id_6g=`hexdump -C /proc/device-tree/soc/wifi2@f00000/board_id | awk '{print $5}'`
+                                    ;;
+                    esac
+                            ;;
+                    *)
+                            echo "Board name is $board -do_ftm_conf_override API not applicable" > /dev/console && return
+                    ;;
+            esac
+        fi
         awk -F',' -v board=$board -v board_id_2g=$board_id_2g -v board_id_5g=$board_id_5g -v board_id_6g=$board_id_6g -v ftm_conf_path=$ftm_conf_path '{
                 if ($1 == board) {
                         print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6 "\t" NR
