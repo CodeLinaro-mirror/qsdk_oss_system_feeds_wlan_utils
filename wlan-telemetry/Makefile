@@ -28,6 +28,9 @@ MAKE_OPTS:= -C "$(PKG_BUILD_DIR)" \
 	KERNEL_PATH="${LINUX_DIR}" \
 	BUILD_PROFILE="Open" \
 	PWD="$(PKG_BUILD_DIR)"
+define Build/InstallDev
+        $(CP) $(PKG_BUILD_DIR)/inc/telemetry_agent_app_if.h $(STAGING_DIR)/usr/include
+endef
 
 define Build/Compile
 	$(KERNEL_MAKE) $(MAKE_OPTS) all
