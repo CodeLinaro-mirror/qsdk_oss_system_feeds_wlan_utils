@@ -40,6 +40,9 @@ define Package/ath-wifi-scripts/install
 	$(INSTALL_DATA) $(EXTERNAL_FILE_DIR)/files/lib/wifi/telemetry/config.json $(1)/lib/wifi/sawf/telemetry/
 	$(INSTALL_DATA) $(EXTERNAL_FILE_DIR)/files/lib/wifi/telemetry/sla.json $(1)/lib/wifi/sawf/telemetry/
 	$(INSTALL_DATA) $(EXTERNAL_FILE_DIR)/files/lib/wifi/telemetry/sla_detect.json $(1)/lib/wifi/sawf/telemetry/
+ifneq ($(wildcard $(EXTERNAL_FILE_DIR)/files/lib/wifi/pre_post_wifi_operations.sh),)
+	$(INSTALL_DATA) $(EXTERNAL_FILE_DIR)/files/lib/wifi/pre_post_wifi_operations.sh $(1)/lib/wifi/
+endif
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/performance.sh $(1)/lib
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/smp_affinity_settings.sh $(1)/lib
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/boost_performance.sh $(1)/lib
