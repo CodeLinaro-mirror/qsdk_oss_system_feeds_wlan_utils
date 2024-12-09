@@ -9,6 +9,7 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG)
 
 EXTERNAL_FILE_DIR:=$(TOPDIR)/openwrt-patches/package/kernel/mac80211
 EXTERNAL_HOSTAP_FILE_DIR:=$(TOPDIR)/openwrt-patches/package/network/services/hostapd/
+OPENWRT_FILE_DIR:=$(TOPDIR)/package/network/config/wifi-scripts
 
 include $(INCLUDE_DIR)/package.mk
 define Package/$(PKG_NAME)
@@ -57,6 +58,22 @@ define Package/ath-wifi-scripts/install
 	chmod 0755 $(1)/lib/netifd/dpp-supplicant-event-update
 endef
 
+define Package/openwrt-wifi-scripts
+  SECTION:=QCA
+  CATEGORY:=QCA software
+  TITLE:= OpenWRT wifi scripts for kernel6.6
+  DEPENDS:=@TARGET_ipq807x||TARGET_ipq50xx||TARGET_ipq60xx||TARGET_ipq95xx||TARGET_ipq53xx||TARGET_ipq54xx
+endef
+
+define Package/openwrt-wifi-scripts/install
+	$(INSTALL_DIR) $(1)/lib/wifi/
+	$(INSTALL_DIR) $(1)/lib/netifd/
+	$(INSTALL_DIR) $(1)/lib/netifd/wireless/
+	$(INSTALL_BIN) $(OPENWRT_FILE_DIR)/files/lib/netifd/wireless/mac80211.sh $(1)/lib/netifd/wireless/
+	$(INSTALL_BIN) $(OPENWRT_FILE_DIR)/files/lib/netifd/hostapd.sh $(1)/lib/netifd/hostapd.sh
+	rm -rf $(1)/lib/wifi/mac80211.sh
+endef
+
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/lib/preinit
 	$(INSTALL_DIR) $(1)/etc/init.d/
@@ -72,3 +89,4 @@ endef
 Build/Compile=true
 $(eval $(call BuildPackage,$(PKG_NAME)))
 $(eval $(call BuildPackage,ath-wifi-scripts))
+$(eval $(call BuildPackage,openwrt-wifi-scripts))
