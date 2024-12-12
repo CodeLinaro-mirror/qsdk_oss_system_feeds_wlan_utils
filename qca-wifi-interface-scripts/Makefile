@@ -60,6 +60,22 @@ endif
 	chmod 0755 $(1)/lib/netifd/dpp-supplicant-event-update
 endef
 
+define Package/ath-legacy-wifi-scripts
+  SECTION:=QCA
+  CATEGORY:=QCA software
+  TITLE:= ATH legacy wifi scripts for kernel6.6
+  DEPENDS:=@TARGET_ipq807x||TARGET_ipq50xx||TARGET_ipq60xx||TARGET_ipq95xx||TARGET_ipq53xx||TARGET_ipq54xx
+endef
+
+define Package/ath-legacy-wifi-scripts/install
+	$(INSTALL_DIR) $(1)/lib/wifi/
+	$(INSTALL_DIR) $(1)/lib/netifd/
+	$(INSTALL_DIR) $(1)/lib/netifd/wireless/
+	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/wifi/mac80211.sh $(1)/lib/wifi/mac80211.sh
+	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/netifd-wlan/wireless/mac80211.sh $(1)/lib/netifd/wireless/
+	$(INSTALL_DATA) $(EXTERNAL_HOSTAP_FILE_DIR)/files/hostapd.sh $(1)/lib/netifd/hostapd.sh
+endef
+
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/lib/preinit
 	$(INSTALL_DIR) $(1)/etc/init.d/
@@ -75,3 +91,4 @@ endef
 Build/Compile=true
 $(eval $(call BuildPackage,$(PKG_NAME)))
 $(eval $(call BuildPackage,ath-wifi-scripts))
+$(eval $(call BuildPackage,ath-legacy-wifi-scripts))
