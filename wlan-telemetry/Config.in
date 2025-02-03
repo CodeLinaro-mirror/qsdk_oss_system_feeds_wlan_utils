@@ -1,0 +1,5 @@
+config TELEMETRY_AGENT_DEPENDENCY
+	string "Driver module dependency"
+	default "ath12k"
+	help
+		Specify the kernel module that telemetry_agent depends on.
