@@ -48,6 +48,9 @@ endif
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/boost_performance.sh $(1)/lib
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/ds_enable.sh $(1)/lib
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/apsta_mode.sh $(1)/lib
+ifeq ($(CONFIG_KERNEL_ATHMEMDEBUG),y)
+	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/memleak_check.sh $(1)/lib
+endif
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/coredump.sh $(1)/etc/hotplug.d/devcoredump
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/lib/wifi-config.sh $(1)/etc/hotplug.d/ieee80211/01-wifi-detect
 	$(INSTALL_BIN) $(EXTERNAL_FILE_DIR)/files/etc/init.d/ath11k_nss_enable.sh $(1)/etc/init.d

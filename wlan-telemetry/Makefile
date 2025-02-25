@@ -24,7 +24,7 @@ endef
 MAKE_OPTS:= -C "$(PKG_BUILD_DIR)" \
 	CROSS_COMPILE="$(KERNEL_CROSS)" \
 	ARCH="$(LINUX_KARCH)" \
-	EXTRA_CFLAGS="-Wall -Wno-unused-variable" \
+	EXTRA_CFLAGS="-Wall -Werror -Wno-unused-variable" \
 	KERNEL_PATH="${LINUX_DIR}" \
 	BUILD_PROFILE="Open" \
 	PWD="$(PKG_BUILD_DIR)"
