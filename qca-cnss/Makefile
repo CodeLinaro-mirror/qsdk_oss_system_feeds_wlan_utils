@@ -96,6 +96,4 @@ define Build/Compile
 endef
 
 $(eval $(call KernelPackage,$(PKG_NAME)))
-ifneq ($(strip ${CONFIG_LINUX_6_1}${CONFIG_LINUX_6_6}),y)
 $(eval $(call KernelPackage,$(PKG_NAME)-stream))
-endif
