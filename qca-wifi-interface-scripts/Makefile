@@ -7,8 +7,13 @@ PKG_VERSION:=1
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG)
 
-EXTERNAL_FILE_DIR:=$(TOPDIR)/openwrt-patches/package/kernel/mac80211
-EXTERNAL_HOSTAP_FILE_DIR:=$(TOPDIR)/openwrt-patches/package/network/services/hostapd/
+ifeq ($(CONFIG_USE_PRPLMESH_WHM),y)
+	EXTERNAL_FILE_DIR:=$(TOPDIR)/prpl-patches/package/kernel/mac80211
+	EXTERNAL_HOSTAP_FILE_DIR:=$(TOPDIR)/prpl-patches/package/network/services/hostapd/
+else
+	EXTERNAL_FILE_DIR:=$(TOPDIR)/openwrt-patches/package/kernel/mac80211
+	EXTERNAL_HOSTAP_FILE_DIR:=$(TOPDIR)/openwrt-patches/package/network/services/hostapd/
+endif
 
 include $(INCLUDE_DIR)/package.mk
 define Package/$(PKG_NAME)
