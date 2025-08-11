@@ -22,7 +22,9 @@ define KernelPackage/$(PKG_NAME)
 	CATEGORY:=Kernel modules
 	SUBMENU:=Network Devices
 	TITLE:=CNSS Platform Driver
-	KCONFIG:=CONFIG_MHI_BUS_RESERVED_DMA_POOL=y
+	KCONFIG:=\
+		 CONFIG_MHI_BUS_RESERVED_DMA_POOL=y \
+		 CONFIG_PCIE_QCOM_EARLY_CAL_SUPPORT=y
 	FILES:=$(PKG_BUILD_DIR)/ipq_cnss2.ko
 endef
 
