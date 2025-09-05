@@ -234,8 +234,14 @@ create_cfg_caldata_mr()
             cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata.bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
             cp -f "$apdk"/"$DIR_LIB"/caldata.bin /lib/firmware/"$DIR_LIB"/
         else
-            cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
-            cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" /lib/firmware/"$DIR_LIB"/
+            if [ "$DIR_LIB" == "qcn9160" ]
+            then
+                cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
+                cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin /lib/firmware/"$DIR_LIB"/
+            else
+                cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
+                cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" /lib/firmware/"$DIR_LIB"/
+            fi
         fi
 
         [ -f $ftm_conf_path/$2/caldata.bin ] || touch $ftm_conf_path/$2/caldata.bin
