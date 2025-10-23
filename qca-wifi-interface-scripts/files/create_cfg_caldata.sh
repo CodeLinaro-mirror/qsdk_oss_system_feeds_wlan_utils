@@ -210,7 +210,7 @@ do_ftm_conf_override()
                             lineNumber=NR
                             if ($3 == 2){
                                 print "2G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_2g
-                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" board_id_2g "\/ " ftm_conf_path "/ftm.conf"
+                                cmd = "sed -i " lineNumber"s" "\/" $2 "\/" "00" board_id_2g "\/ " ftm_conf_path "/ftm.conf"
                             }
                             if ($3 == 4){
                                 print "5G slot Instance -lineNumber" lineNumber "DTS board ID - "board_id_5g
