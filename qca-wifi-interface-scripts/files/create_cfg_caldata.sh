@@ -42,6 +42,10 @@ get_config_file_path()
 		ini_path="/etc/misc/ipq/ini"
 		caldata_path="/data/vendor/wifi/caldata"
 	;;
+	*sdxkova-*)
+		ini_path="/ini"
+		caldata_path="/data/vendor/wifi/caldata"
+	;;
 	*)
 		ini_path="/ini"
 		caldata_path="/lib/firmware"
@@ -106,6 +110,8 @@ create_cfg_caldata() {
 					else
 						BDF_SIZE=131072
 				}
+				cmd = "mkdir -p " fw_path "/" dir_lib "/"
+				system(cmd)
 				cmd = "dd if="mtdblock" of=" apdk dir_lib "/caldata_" file_suffix ".b" $2 " bs=1 count=" BDF_SIZE " skip=" $4
 				system(cmd)
 				cmd = "cp " apdk dir_lib "/caldata_" file_suffix ".b" $2 " " fw_path "/" dir_lib "/"

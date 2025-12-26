@@ -476,17 +476,17 @@ do_load_ipq4019_board_bin()
                     create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
             ;;
             sdxkova-qcn9224-V1)
-	            [ -f /lib/firmware/qcn9224/caldata_1.b0002 ] && \
-	            [ -f /lib/firmware/qcn9224/caldata_2.b0004 ] && \
-	            [ -f /lib/firmware/qcn9224/caldata_3.b0001 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_1.b0002 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_2.b0004 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_3.b0001 ] && \
                     return
                     mkdir -p ${apdk}/qcn9224
 
                     create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
             ;;
            sdxkova-qcn9224-V2)
-	            [ -f /lib/firmware/qcn9224/caldata_1.b1003 ] && \
-	            [ -f /lib/firmware/qcn9224/caldata_2.b0004 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_1.b1003 ] && \
+	            [ -f /data/vendor/wifi/caldata/qcn9224/caldata_2.b0004 ] && \
                     return
                     mkdir -p ${apdk}/qcn9224
 
