@@ -62,7 +62,10 @@ create_cfg_caldata() {
 	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
 	local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
 	local fw_caldata=$(get_config_file_path "caldata")
-
+       case "$brd" in
+               *sdxkova-*) brd="ap-$brd" ;;
+               *) ;;
+       esac
 	awk -F ',' -v apdk='/tmp/' -v mtdblock=$1 -v ahb_dir=$2 -v pci_dir=$3 -v pci1_dir=$4 -v board=$brd -v fw_path=$fw_caldata '{
 		if ($1 == board) {
 			print $1 "\t" $2 "\t" $3 "\t" $4 "\t" $5 "\t" $6
@@ -112,7 +115,7 @@ create_cfg_caldata() {
 	}' $fw_caldata/ftm.conf
 
 	case "$brd" in
-	ap-sdxpinn*)
+       *sdxpinn* | *sdxkova*)
 		;;
 	*)
 		[ -f $fw_caldata/$2/caldata.bin ] || touch $fw_caldata/$2/caldata.bin
