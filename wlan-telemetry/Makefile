@@ -8,23 +8,13 @@ PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 
 LOCAL_SRC:=$(TOPDIR)/qca/src/qca-wifi/telemetry_agent
 
-# Get the dependency module from config or use default
-DEPENDENCY_MODULE:=$(if $(CONFIG_TELEMETRY_AGENT_DEPENDENCY),$(CONFIG_TELEMETRY_AGENT_DEPENDENCY),ath12k)
-
 include $(INCLUDE_DIR)/local-development.mk
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/$(PKG_NAME)
   TITLE:=Telemetry Agent
-  DEPENDS+= +kmod-ath12k
+  DEPENDS+= kmod-ath12k
   FILES:=$(PKG_BUILD_DIR)/telemetry_agent.ko
-  # Use Autoload with no number prefix for alphabetical ordering
-  AUTOLOAD:=$(call AutoLoad,,telemetry_agent)
-  MENU:=1
-endef
-
-define KernelPackage/$(PKG_NAME)/config
-	source "$(CURDIR)/Config.in"
 endef
 
 define KernelPackage/$(PKG_NAME)/description
@@ -44,11 +34,6 @@ endef
 
 define Build/Compile
 	$(KERNEL_MAKE) $(MAKE_OPTS) all
-endef
-
-define KernelPackage/$(PKG_NAME)/install
-	$(INSTALL_DIR) $(1)/etc/modules.d
-	echo "telemetry_agent" > $(1)/etc/modules.d/54-$(PKG_NAME)
 endef
 
 $(eval $(call KernelPackage,$(PKG_NAME)))
