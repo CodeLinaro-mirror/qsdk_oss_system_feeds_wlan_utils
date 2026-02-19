@@ -62,6 +62,55 @@ get_config_file_path()
 	esac
 }
 
+# Return 0 (true) if KEY is enabled in CONF, else return 1 (false).
+# Accepts: 1, true, yes, on  (case-insensitive)
+conf_bool_enabled()
+{
+	conf_file="$1"
+	conf_key="$2"
+
+	[ -f "$conf_file" ] || return 1
+
+	awk -v key="$conf_key" '
+		BEGIN { found = 0 }
+
+		/^[[:space:]]*$/ || /^[[:space:]]*#/ { next }
+
+		{
+			line = $0
+			gsub(/\r/, "", line)
+
+			pos = index(line, "=")
+			if (pos == 0)
+				next
+
+			k = substr(line, 1, pos-1)
+			v = substr(line, pos+1)
+
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", k)
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+
+			k = tolower(k)
+			v = tolower(v)
+			key = tolower(key)
+
+			if (k == key) {
+				if (v == "1" || v == "true" || v == "yes" || v == "on")
+					found = 1
+				exit
+			}
+		}
+
+	END {
+		if (found)
+			exit 0
+		else
+			exit 1
+	}
+	' "$conf_file"
+}
+
+
 create_cfg_caldata() {
 	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
 	local brd=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
@@ -248,6 +297,7 @@ do_ftm_conf_override()
 }
 
 #create_cfg_caldata_mr is the new api added for multi radio support
+# For 11bn attach RDPs, uncompression is handled if art_compression.conf is available
 #To call this API, ftm.conf entry should have DIR argument with the existing arguments 
 #while calling it should have 2 aruguments mtdblock and integrated radio
 #Ex : create_cfg_caldata_mr "${mtdblock}" "Integrated radio"
@@ -260,6 +310,21 @@ create_cfg_caldata_mr()
     local grep_val=$(grep $brd $ftm_conf_path/ftm.conf)
     local num_rows="$(grep -w -c $brd $ftm_conf_path/ftm.conf)"
     local apdk="/tmp"
+
+    local ART_COMPRESSION_ENABLED=0
+    local READ_IF=$1
+
+
+    if conf_bool_enabled /tmp/art_compression.conf ART_COMPRESSION; then
+       ART_COMPRESSION_ENABLED=1
+       #FTM Daemon compresses the caldata and writes the lzma file in ART Partition
+       dd if=$READ_IF of=${apdk}/virtual_art.bin.lzma
+       lzma -fdv --single-stream ${apdk}/virtual_art.bin.lzma || {
+           # Create dummy virtual_art.bin file of size 2MB
+           dd if=/dev/zero of=${apdk}/virtual_art.bin bs=1024 count=2048
+       }
+       READ_IF=${apdk}/virtual_art.bin
+    fi
 
     # Loop to process the output
     for i in `seq 1 $num_rows`
@@ -277,10 +342,11 @@ create_cfg_caldata_mr()
         echo -e $brd "\t" $BOARD_ID "\t"  $SLOT_ID "\t" $OFFSET "\t" $SIZE "\t" $IS_PCI "\t" $DIR_LIB
 
         #Get the BDF size
-        BDF_SIZE=$(stat -Lc%s /lib/firmware/"$DIR_LIB"/bdwlan.b"$BOARD_ID")
+        BDF_FILE="/lib/firmware/${DIR_LIB}/bdwlan.b${BOARD_ID}"
 
-        if [ -z $BDF_SIZE ]
-        then
+        if [ -f "$BDF_FILE" ]; then
+            BDF_SIZE=$(stat -Lc%s "$BDF_FILE")
+        else
             BDF_SIZE=$SIZE
         fi
 
@@ -288,15 +354,15 @@ create_cfg_caldata_mr()
 
         if [ $IS_PCI == "255" ]
         then
-            cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata.bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
+            cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata.bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
             cp -f "$apdk"/"$DIR_LIB"/caldata.bin /lib/firmware/"$DIR_LIB"/
         else
             if [ "$DIR_LIB" == "qcn9160" ]
             then
-                cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
+                cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
                 cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin /lib/firmware/"$DIR_LIB"/
             else
-                cmd=$(dd if=$1 of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
+                cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
                 cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" /lib/firmware/"$DIR_LIB"/
             fi
         fi
