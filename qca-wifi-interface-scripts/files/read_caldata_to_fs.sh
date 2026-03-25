@@ -24,12 +24,12 @@ is_ftm_conf_supported() {
         local ftm_conf_path=$(get_config_file_path "caldata")
 
 	case "$board" in
-       ap-mi*|ap-al02-c4*|ap-al02-c6*|ap-al06*|ap-al05*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al02-c20*|ap-al03-c1*|ap-al03-c2*|db-mi02.1*|ap-sdxpinn-qcn9224*|sdxkova-qcn9224*|rdp466*|rdp485*|rdp487*|tb-mi03.1*|tb-mi05.1*|rdp496*|ap-al02-c13*|ap-al02-c19*)
+       ap-mi*|ap-al02-c4*|ap-al02-c6*|ap-al06*|ap-al05*|ap-al02-c7*|ap-al02-c8*|ap-al02-c9*|ap-al02-c10*|ap-al02-c11*|ap-al02-c12*|ap-al02-c14*|ap-al02-c15*|ap-al02-c16*|ap-al02-c20*|ap-al03-c1*|ap-al03-c2*|db-mi02.1*|ap-sdxpinn-qcn9224*|sdxkova-qcn9224*|rdp466*|rdp485*|rdp487*|rdp498*|rdp500*|rdp501*|tb-mi03.1*|tb-mi05.1*|rdp496*|ap-al02-c13*|ap-al02-c19*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
 		;;
 
 #Starting with 11bn RDPs, ART is compressed by default. Add 11bn attach RDPs to below list
-	rdp492*)
+	rdp492* | rdp499* | rdp502* | rdp503* | rdp504* | rdp505*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
 		echo "ART_COMPRESSION=1" > /tmp/art_compression.conf
 	;;
@@ -512,7 +512,18 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata_mr "${mtdblock}" "IPQ5424"
             ;;
+            rdp499* | rdp502* | rdp503* | rdp504* | rdp505*)
+                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+                    mkdir -p ${apdk}/qcn9625
 
+                    create_cfg_caldata_mr "${mtdblock}" "IPQ5210"
+            ;;
+            rdp498* | rdp500* | rdp501*)
+                    ls /lib/firmware/qcn9224/caldata*.b* >/dev/null 2>&1 && return
+                    mkdir -p ${apdk}/qcn9224
+
+                    create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
+            ;;
    esac
 }
 
