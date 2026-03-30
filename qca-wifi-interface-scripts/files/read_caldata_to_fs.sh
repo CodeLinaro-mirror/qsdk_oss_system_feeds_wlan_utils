@@ -29,7 +29,7 @@ is_ftm_conf_supported() {
 		;;
 
 #Starting with 11bn RDPs, ART is compressed by default. Add 11bn attach RDPs to below list
-	rdp492* | rdp499* | rdp502* | rdp503* | rdp504* | rdp505*)
+	rdp492*|rdp499*|rdp502*|rdp503* |rdp504* |rdp505*|rdp488*|rdp489*|rdp506*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
 		echo "ART_COMPRESSION=1" > /tmp/art_compression.conf
 	;;
@@ -524,6 +524,12 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
             ;;
+           rdp488*|rdp489*|rdp506*)
+                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+                    mkdir -p ${apdk}/qcn9625
+
+                    create_cfg_caldata_mr "${mtdblock}" "IPQ9650"
+           ;;
    esac
 }
 
