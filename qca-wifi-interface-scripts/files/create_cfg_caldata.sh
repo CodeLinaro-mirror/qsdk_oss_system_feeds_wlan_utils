@@ -110,6 +110,48 @@ conf_bool_enabled()
 	' "$conf_file"
 }
 
+# Return the raw value string for KEY from CONF.
+# Prints the value to stdout and returns non-zero if KEY is not present.
+conf_get_value()
+{
+	local conf_file="$1"
+	local conf_key="$2"
+
+	[ -f "$conf_file" ] || return 1
+
+	awk -v key="$conf_key" '
+		BEGIN { found = 0 }
+
+		/^[[:space:]]*$/ || /^[[:space:]]*#/ { next }
+
+		{
+			line = $0
+			gsub(/\r/, "", line)
+
+			pos = index(line, "=")
+			if (pos == 0)
+				next
+
+			k = substr(line, 1, pos-1)
+			v = substr(line, pos+1)
+
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", k)
+			gsub(/^[[:space:]]+|[[:space:]]+$/, "", v)
+
+			if (tolower(k) == tolower(key)) {
+				print v
+				found = 1
+				exit
+			}
+		}
+
+	END {
+		if (!found)
+			exit 1
+	}
+	' "$conf_file"
+}
+
 
 create_cfg_caldata() {
 	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
@@ -312,17 +354,47 @@ create_cfg_caldata_mr()
     local apdk="/tmp"
 
     local ART_COMPRESSION_ENABLED=0
+    local ART_SLOT_OFFSET_KB=0
+    local ART_PARTITION_SIZE_KB=512
     local READ_IF=$1
+    local WLAN_CALDATA_PARTITION_SIZE=0
 
 
-    if conf_bool_enabled /tmp/art_compression.conf ART_COMPRESSION; then
+    if conf_bool_enabled /tmp/art.conf ART_COMPRESSION; then
        ART_COMPRESSION_ENABLED=1
-       #FTM Daemon compresses the caldata and writes the lzma file in ART Partition
-       dd if=$READ_IF of=${apdk}/virtual_art.bin.lzma
-       lzma -fdv --single-stream ${apdk}/virtual_art.bin.lzma || {
-           # Create dummy virtual_art.bin file of size 2MB
-           dd if=/dev/zero of=${apdk}/virtual_art.bin bs=1024 count=2048
-       }
+       ART_SLOT_OFFSET_KB=$(conf_get_value /tmp/art.conf ART_SLOT_OFFSET_KB)
+       [ -n "$ART_SLOT_OFFSET_KB" ] || ART_SLOT_OFFSET_KB=0
+       ART_PARTITION_SIZE_KB=$(conf_get_value /tmp/art.conf ART_PARTITION_SIZE_KB)
+       [ -n "$ART_PARTITION_SIZE_KB" ] || ART_PARTITION_SIZE_KB=512
+
+       if [ "$ART_SLOT_OFFSET_KB" -gt 0 ]; then
+           WLAN_CALDATA_PARTITION_SIZE=$((ART_PARTITION_SIZE_KB - ART_SLOT_OFFSET_KB))
+           # Design note:
+           # ART on 11bn RDPs is a mixed-format image. The first ART_SLOT_OFFSET_KB KB hold
+           # Ethernet MAC address region + CALDATA metadata and must remain raw so the
+           # booted system can read them directly from flash without LZMA decompression.
+           # Only the WLAN calibration area after that offset is stored in compressed form.
+           #
+           # We therefore split the image into:
+           #   1. virtual_art_ethphy.bin              -> raw prefix from flash
+           #   2. virtual_art_wlan_caldata.bin.lzma  -> compressed WLAN calibration suffix
+           #
+           # After decompressing the WLAN part, we manually concatenate both sections back
+           # into virtual_art.bin so every downstream caldata consumer still sees a single
+           # logical ART replica in /tmp while preserving the raw-on-flash layout contract.
+           dd if=$READ_IF of=${apdk}/virtual_art_ethphy.bin bs=1024 count=$ART_SLOT_OFFSET_KB
+           dd if=$READ_IF of=${apdk}/virtual_art_wlan_caldata.bin.lzma bs=1024 skip=$ART_SLOT_OFFSET_KB
+           lzma -fdv --single-stream ${apdk}/virtual_art_wlan_caldata.bin.lzma || {
+               dd if=/dev/zero of=${apdk}/virtual_art_wlan_caldata.bin bs=1024 count=$WLAN_CALDATA_PARTITION_SIZE
+           }
+           cat ${apdk}/virtual_art_ethphy.bin ${apdk}/virtual_art_wlan_caldata.bin > ${apdk}/virtual_art.bin
+       else
+           #FTM Daemon compresses the caldata and writes the lzma file in ART Partition
+           dd if=$READ_IF of=${apdk}/virtual_art.bin.lzma
+           lzma -fdv --single-stream ${apdk}/virtual_art.bin.lzma || {
+               dd if=/dev/zero of=${apdk}/virtual_art.bin bs=1024 count=$ART_PARTITION_SIZE_KB
+           }
+       fi
        READ_IF=${apdk}/virtual_art.bin
     fi
 

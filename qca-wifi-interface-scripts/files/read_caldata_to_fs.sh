@@ -29,11 +29,31 @@ is_ftm_conf_supported() {
 		;;
 
 #Starting with 11bn RDPs, ART is compressed by default. Add 11bn attach RDPs to below list
-	rdp492*|rdp499*|rdp502*|rdp503* |rdp504* |rdp505*|rdp488*|rdp489*|rdp506*)
+	# rdp492 keeps the first 4 KB of ART reserved for raw Ethernet/PHY information.
+	# Only the WLAN caldata region after this offset is compressed, and downstream
+	# scripts rebuild a single virtual_art.bin view after split/decompress processing.
+	rdp492*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
-		echo "ART_COMPRESSION=1" > /tmp/art_compression.conf
+		# ART partition size for legacy platforms.
+		cat <<-EOF > /tmp/art.conf
+		ART_COMPRESSION=1
+		ART_SLOT_OFFSET_KB=4
+		ART_PARTITION_SIZE_KB=1024
+		EOF
 	;;
-
+	# These 11bn RDPs keep the first 10 KB of ART reserved for raw Ethernet
+	# information such as MAC address data followed by CALDATA metadata. Only the WLAN
+	# caldata region after this offset is compressed, and downstream scripts
+	# rebuild a single virtual_art.bin view after split/decompress processing.
+	rdp499*|rdp502*|rdp503*|rdp504*|rdp505*|rdp488*|rdp489*|rdp506*)
+		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
+		# Maximum ART partition size among IPQ96xx/IPQ52xx.
+		cat <<-EOF > /tmp/art.conf
+		ART_COMPRESSION=1
+		ART_SLOT_OFFSET_KB=10
+		ART_PARTITION_SIZE_KB=5120
+		EOF
+	;;
 	*)
 		echo "ftm.conf file is not supported for $board " > /dev/console
                 rm -rf $ftm_conf_path/ftm.conf
