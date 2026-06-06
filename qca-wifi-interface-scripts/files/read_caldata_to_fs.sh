@@ -45,7 +45,7 @@ is_ftm_conf_supported() {
 	# information such as MAC address data followed by CALDATA metadata. Only the WLAN
 	# caldata region after this offset is compressed, and downstream scripts
 	# rebuild a single virtual_art.bin view after split/decompress processing.
-	rdp499*|rdp502*|rdp503*|rdp504*|rdp505*|rdp488*|rdp489*|rdp506*)
+	rdp499*|rdp502*|rdp503*|rdp504*|rdp505*|rdp488*|rdp489*|rdp506*|rdp507*|rdp490*|rdp491*|rdp511*|rdp512*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
 		# Maximum ART partition size among IPQ96xx/IPQ52xx.
 		cat <<-EOF > /tmp/art.conf
@@ -549,6 +549,18 @@ do_load_ipq4019_board_bin()
                     mkdir -p ${apdk}/qcn9625
 
                     create_cfg_caldata_mr "${mtdblock}" "IPQ9650"
+           ;;
+           rdp507*|rdp490*|rdp491*)
+                    ls /lib/firmware/qcn9589/caldata*.b* >/dev/null 2>&1 && \
+                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+                    mkdir -p ${apdk}/qcn9589
+                    mkdir -p ${apdk}/qcn9625
+                    create_cfg_caldata_mr "${mtdblock}" "IPQ9650"
+           ;;
+           rdp511*|rdp512*)
+                    ls /lib/firmware/qcn9589/caldata*.b* >/dev/null 2>&1 && return
+                    mkdir -p ${apdk}/qcn9589
+                    create_cfg_caldata_mr "${mtdblock}" "IPQ5210"
            ;;
    esac
 }
