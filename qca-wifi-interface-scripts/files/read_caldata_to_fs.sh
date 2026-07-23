@@ -45,14 +45,40 @@ is_ftm_conf_supported() {
 	# information such as MAC address data followed by CALDATA metadata. Only the WLAN
 	# caldata region after this offset is compressed, and downstream scripts
 	# rebuild a single virtual_art.bin view after split/decompress processing.
-	rdp499*|rdp502*|rdp503*|rdp504*|rdp505*|rdp488*|rdp489*|rdp506*|rdp507*|rdp490*|rdp491*|rdp511*|rdp512*)
+	# Selected 11bn RDPs additionally migrate ART to a UBI volume when the ART
+	# flash backing is NAND, while preserving the same logical ART payload layout.
+	# ART_PARTITION_SIZE_KB only defines the usable size of ART partition, specifically in case
+	# of NAND flash where UBIFS is enabled, the actual partition size to be higher
+	# to allow for reserved blocks for bad block management
+	# ART_UBI_BEB_LIMIT to be defined based on the ART partition size, approximately 1 per MB of flash size
+	# i.e., overall 2 PEBs per MB of flash size.
+	# IPQ52xx
+	rdp499*|rdp502*|rdp503*|rdp504*|rdp505*|rdp511*|rdp512*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
-		# Maximum ART partition size among IPQ96xx/IPQ52xx.
+		# Maximum ART partition size among IPQ52xx.
+		cat <<-EOF > /tmp/art.conf
+		ART_COMPRESSION=1
+		ART_SLOT_OFFSET_KB=10
+		ART_PARTITION_SIZE_KB=2048
+		ART_UBIFS=1
+		ART_UBI_BEB_LIMIT=4
+		EOF
+		ensure_art_ubi_ready >/dev/null 2>&1 || \
+			echo "ART UBI: Failed to prepare UBI backend for $board" > /dev/console
+	;;
+	# IPQ96xx
+	rdp488*|rdp489*|rdp506*|rdp507*|rdp490*|rdp491*)
+		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
+		# Maximum ART partition size among IPQ96xx.
 		cat <<-EOF > /tmp/art.conf
 		ART_COMPRESSION=1
 		ART_SLOT_OFFSET_KB=10
 		ART_PARTITION_SIZE_KB=5120
+		ART_UBIFS=1
+		ART_UBI_BEB_LIMIT=5
 		EOF
+		ensure_art_ubi_ready >/dev/null 2>&1 || \
+			echo "ART UBI: Failed to prepare UBI backend for $board" > /dev/console
 	;;
 	*)
 		echo "ftm.conf file is not supported for $board " > /dev/console
@@ -68,14 +94,11 @@ do_load_ipq4019_board_bin()
 
     local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
     local board=$brd_name$(echo $(board_name) | awk -F "$brd_name" '{print$2}')
-    local mtdblock=$(find_mtd_part 0:ART)
+    local mtdblock
 
     local apdk="/tmp"
 
-    if [ -z "$mtdblock" ]; then
-        # read from mmc
-        mtdblock=$(find_mmc_part 0:ART)
-    fi
+    mtdblock=$(get_art_read_device)
 
     [ -n "$mtdblock" ] || return
 
