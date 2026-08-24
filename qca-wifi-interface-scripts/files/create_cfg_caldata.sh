@@ -152,6 +152,510 @@ conf_get_value()
 	' "$conf_file"
 }
 
+# ============================================================================
+# ART UBI / NAND helpers for selected 11bn RDPs
+# ============================================================================
+
+# find_flash_type(part_name) resolves the flash backing for a partition and
+# returns 0 when the partition is found, or 1 when it cannot be resolved.
+find_flash_type()
+{
+	local part_name="$1"
+	local emmc_part mtd_part mtd_num mtd_type
+
+	[ -z "$part_name" ] && echo "none" && return 1
+
+	emmc_part=$(find_mmc_part "$part_name" 2>/dev/null)
+	[ -n "$emmc_part" ] && echo "emmc" && return 0
+
+	mtd_part=$(find_mtd_part "$part_name" 2>/dev/null)
+	[ -z "$mtd_part" ] && echo "none" && return 1
+
+	mtd_num=$(find_mtd_index "$part_name" 2>/dev/null)
+	if [ -n "$mtd_num" ] && [ -f "/sys/class/mtd/mtd${mtd_num}/type" ]; then
+		mtd_type=$(cat "/sys/class/mtd/mtd${mtd_num}/type" 2>/dev/null)
+		echo "${mtd_type:-mtd}"
+	else
+		echo "mtd"
+	fi
+	return 0
+}
+
+# ubi_find_dev(part_name) resolves the attached UBI device index for an MTD
+# partition and returns 0 when attached, or 1 when no attached device is found.
+ubi_find_dev()
+{
+	local part_name="$1"
+	local mtd_num ubi_sysfs sysfs_mtd_num
+
+	mtd_num=$(find_mtd_index "$part_name")
+	[ -z "$mtd_num" ] && return 1
+
+	for ubi_sysfs in /sys/class/ubi/ubi*; do
+		case "$(basename $ubi_sysfs)" in
+			*_*) continue ;;
+		esac
+		[ -f "$ubi_sysfs/mtd_num" ] || continue
+		sysfs_mtd_num=$(cat "$ubi_sysfs/mtd_num" 2>/dev/null)
+		if [ "$sysfs_mtd_num" = "$mtd_num" ]; then
+			basename "$ubi_sysfs" | sed 's/ubi//'
+			return 0
+		fi
+	done
+	return 1
+}
+
+# ubi_find_vol(ubi_num, vol_name) resolves a named UBI volume to /dev/ubiN_M
+# and returns 0 when the volume exists, or 1 when it cannot be found.
+ubi_find_vol()
+{
+	local ubi_num="$1"
+	local vol_name="$2"
+	local vol_sysfs vol_id dev_path
+
+	[ -z "$ubi_num" ] || [ -z "$vol_name" ] && return 1
+
+	for vol_sysfs in /sys/class/ubi/ubi${ubi_num}_*; do
+		[ -f "$vol_sysfs/name" ] || continue
+		if [ "$(cat "$vol_sysfs/name" 2>/dev/null)" = "$vol_name" ]; then
+			vol_id=$(basename "$vol_sysfs" | sed "s/ubi${ubi_num}_//")
+			dev_path="/dev/ubi${ubi_num}_${vol_id}"
+			if [ ! -e "$dev_path" ] && [ -f "$vol_sysfs/dev" ]; then
+				local devid major minor
+				devid=$(cat "$vol_sysfs/dev" 2>/dev/null)
+				major="${devid%%:*}"
+				minor="${devid##*:}"
+				mknod "$dev_path" c "$major" "$minor" 2>/dev/null || true
+			fi
+			echo "$dev_path"
+			return 0
+		fi
+	done
+	return 1
+}
+
+# ubi_is_formatted(part_name) checks for UBI magic on the backing MTD partition
+# and returns 0 when the partition is already UBI-formatted, or 1 otherwise.
+ubi_is_formatted()
+{
+	local part_name="$1"
+	local mtd_num magic
+	local ubi_magic="55424923"
+
+	mtd_num=$(find_mtd_index "$part_name")
+	[ -z "$mtd_num" ] && return 1
+
+	magic=$(dd if=/dev/mtd${mtd_num} bs=4 count=1 2>/dev/null | hexdump -v -e '/1 "%02x"')
+	[ "$magic" = "$ubi_magic" ] && return 0
+	return 1
+}
+
+# ubi_attach(part_name, [beb_limit]) attaches a UBI-formatted partition to the
+# UBI subsystem and returns 0 when attach succeeds/already exists, or 1 on failure.
+ubi_attach()
+{
+	local part_name="$1"
+	local beb_opt="$2"
+	local mtd_num ubi_num ret
+
+	[ -z "$part_name" ] && return 1
+
+	mtd_num=$(find_mtd_index "$part_name")
+	[ -z "$mtd_num" ] && return 1
+
+	ubi_num=$(ubi_find_dev "$part_name" 2>/dev/null)
+	[ -n "$ubi_num" ] && return 0
+
+	if [ -n "$beb_opt" ]; then
+		ubiattach -m "${mtd_num}" -b "${beb_opt}" 2>/dev/null
+	else
+		ubiattach -m "${mtd_num}" 2>/dev/null
+	fi
+	ret=$?
+
+	[ $ret -ne 0 ] && [ $ret -ne 17 ] && return 1
+
+	sync
+	return 0
+}
+
+# ubi_init(part_name, vol_name, [vol_size_kb], [--force]) formats NAND as UBI when
+# needed and ensures the requested static volume exists; it returns 0 on success,
+# or 1 on failure.
+ubi_init()
+{
+	local part_name="$1"
+	local vol_name="$2"
+	local vol_size_kb="$3"
+	local force=0
+
+	[ "$3" = "--force" ] && { vol_size_kb=""; force=1; }
+	[ "$4" = "--force" ] && force=1
+
+	local flash_type mtd_num ubi_num vol_dev
+
+	[ -z "$part_name" ] || [ -z "$vol_name" ] && return 1
+
+	flash_type=$(find_flash_type "$part_name")
+	[ "$flash_type" != "nand" ] && return 1
+
+	mtd_num=$(find_mtd_index "$part_name")
+	[ -z "$mtd_num" ] && return 1
+
+	if ubi_is_formatted "$part_name" && [ "$force" = "0" ]; then
+		:
+	else
+		ubi_num=$(ubi_find_dev "$part_name" 2>/dev/null)
+		[ -n "$ubi_num" ] && { ubidetach -d "${ubi_num}" 2>/dev/null || true; sleep 1; }
+
+		ubiformat /dev/mtd${mtd_num} -y || return 1
+	fi
+
+	ubi_attach "$part_name" || return 1
+
+	ubi_num=$(ubi_find_dev "$part_name")
+	[ -z "$ubi_num" ] && return 1
+
+	vol_dev=$(ubi_find_vol "$ubi_num" "$vol_name" 2>/dev/null)
+	if [ -n "$vol_dev" ]; then
+		return 0
+	fi
+
+	if [ -n "$vol_size_kb" ]; then
+		ubimkvol /dev/ubi${ubi_num} -N "${vol_name}" -t static -s "${vol_size_kb}KiB" || return 1
+	else
+		ubimkvol /dev/ubi${ubi_num} -N "${vol_name}" -t static -m || return 1
+	fi
+
+	vol_dev=$(ubi_find_vol "$ubi_num" "$vol_name")
+	[ -n "$vol_dev" ]
+}
+
+# art_ubifs_enabled() checks whether ART UBI handling is enabled by /tmp/art.conf
+# and returns 0 when ART_UBIFS is enabled, or 1 when it is absent/disabled.
+art_ubifs_enabled()
+{
+	conf_bool_enabled /tmp/art.conf ART_UBIFS
+}
+
+# get_art_ubi_beb_limit() returns the configured numeric BEB limit when present
+# and resolves successfully even when no BEB override is configured.
+get_art_ubi_beb_limit()
+{
+	local beb_limit
+	beb_limit=$(conf_get_value /tmp/art.conf ART_UBI_BEB_LIMIT)
+	[ -n "$beb_limit" ] && echo "$beb_limit"
+}
+
+# get_art_volume_size_kb() returns the configured ART volume size in KB and
+# defaults to 512 KB when ART_PARTITION_SIZE_KB is absent.
+get_art_volume_size_kb()
+{
+	local volume_size_kb
+	volume_size_kb=$(conf_get_value /tmp/art.conf ART_PARTITION_SIZE_KB)
+	[ -n "$volume_size_kb" ] || volume_size_kb=512
+	echo "$volume_size_kb"
+}
+
+# get_raw_art_device() resolves the existing raw ART backing device and returns 0
+# when either MTD or MMC ART is found, or 1 when no raw ART device is available.
+get_raw_art_device()
+{
+	local dev
+
+	dev=$(find_mtd_part 0:ART)
+	if [ -z "$dev" ]; then
+		dev=$(find_mmc_part 0:ART)
+	fi
+
+	[ -n "$dev" ] && echo "$dev"
+}
+
+# get_art_volume_device() resolves the configured ART UBI volume device path and
+# returns 0 when the volume exists, or 1 when the UBI device/volume is missing.
+get_art_volume_device()
+{
+	local ubi_num vol_dev
+
+	ubi_num=$(ubi_find_dev "0:ART" 2>/dev/null)
+	[ -n "$ubi_num" ] || return 1
+
+	vol_dev=$(ubi_find_vol "$ubi_num" "art" 2>/dev/null)
+	[ -n "$vol_dev" ] || return 1
+
+	echo "$vol_dev"
+}
+
+# restore_raw_art_backup(backup_file, raw_art_dev) best-effort restores the saved
+# raw ART payload back to the original raw ART device and returns 0 on success.
+restore_raw_art_backup()
+{
+	local backup_file="$1"
+	local raw_art_dev="$2"
+	local ubi_num
+
+	[ -n "$backup_file" ] || return 1
+	[ -s "$backup_file" ] || return 1
+	[ -n "$raw_art_dev" ] || return 1
+
+	ubi_num=$(ubi_find_dev "0:ART" 2>/dev/null)
+	[ -n "$ubi_num" ] && ubidetach -d "${ubi_num}" 2>/dev/null || true
+
+	dd if="$backup_file" of="$raw_art_dev" || return 1
+	sync
+	return 0
+}
+
+# art_volume_can_fit(part_name, beb_limit, vol_size_kb) estimates whether a new UBI
+# volume of the requested size can fit on the ART partition without reformatting.
+art_volume_can_fit()
+{
+	local part_name="$1"
+	local beb_limit="$2"
+	local vol_size_kb="$3"
+	local mtd_num peb_size good_pebs reserve_pebs available_bytes requested_bytes
+	local reserve_count reserve_overhead
+
+	[ -n "$part_name" ] || return 1
+	[ -n "$vol_size_kb" ] || return 1
+
+	mtd_num=$(find_mtd_index "$part_name")
+	[ -n "$mtd_num" ] || return 1
+
+	[ -f /sys/class/mtd/mtd${mtd_num}/erasesize ] || return 1
+	[ -f /sys/class/mtd/mtd${mtd_num}/size ] || return 1
+
+	peb_size=$(cat /sys/class/mtd/mtd${mtd_num}/erasesize 2>/dev/null)
+	[ -n "$peb_size" ] || return 1
+
+	good_pebs=$(( $(cat /sys/class/mtd/mtd${mtd_num}/size 2>/dev/null) / peb_size ))
+	[ "$good_pebs" -gt 0 ] || return 1
+
+	reserve_count=0
+	case "$beb_limit" in
+		'')
+			reserve_count=20
+			;;
+		*)
+			reserve_count="$beb_limit"
+			;;
+	esac
+	[ -n "$reserve_count" ] || reserve_count=20
+
+	# Reserve estimation:
+	# - UBI bad block handling reserves roughly 2 PEBs per configured BEB unit.
+	# - Add 2 more PEBs for internal/layout overhead during fresh volume creation.
+	# This is intentionally conservative so we avoid destructive ubiformat when the
+	# requested logical ART payload is unlikely to fit.
+	reserve_overhead=$((reserve_count * 2 + 2))
+	[ "$good_pebs" -gt "$reserve_overhead" ] || return 1
+
+	# UBI data area subtracts EC+VID/data header overhead. On our NAND targets PEB
+	# is expected to be much larger than 4096 bytes; if not, treat the geometry as
+	# unsupported for this estimation and avoid destructive migration.
+	[ "$peb_size" -gt 4096 ] || return 1
+	available_bytes=$(((good_pebs - reserve_overhead) * (peb_size - 4096)))
+	requested_bytes=$((vol_size_kb * 1024))
+
+	[ "$available_bytes" -ge "$requested_bytes" ]
+}
+
+# ensure_art_ubi_ready() prepares the NAND ART UBI backend, including first-boot
+# raw ART migration when needed, and returns 0 when the volume is ready, or 1 on failure.
+ensure_art_ubi_ready()
+{
+	local flash_type raw_art beb_limit vol_dev backup_file
+	local need_recovery recovery_reason mtd_num ubi_num vol_size_kb
+	local backup_count_kb
+
+	art_ubifs_enabled || return 1
+
+	flash_type=$(find_flash_type "0:ART")
+	[ "$flash_type" = "nand" ] || return 1
+
+	raw_art=$(get_raw_art_device)
+	[ -n "$raw_art" ] || return 1
+
+	beb_limit=$(get_art_ubi_beb_limit)
+	vol_size_kb=$(get_art_volume_size_kb)
+	need_recovery=0
+	recovery_reason=""
+
+	if ubi_is_formatted "0:ART"; then
+		echo "ART UBI: Existing UBI formatting detected for 0:ART" > /dev/console
+		if ubi_attach "0:ART" "$beb_limit"; then
+			vol_dev=$(get_art_volume_device 2>/dev/null)
+			if [ -n "$vol_dev" ]; then
+				echo "ART UBI: Using existing volume ${vol_dev}" > /dev/console
+				return 0
+			fi
+			need_recovery=1
+			recovery_reason="attached UBI is missing volume 'art'"
+			echo "ART UBI: ${recovery_reason}, preserving ART and rebuilding UBI volume" > /dev/console
+		else
+			need_recovery=1
+			recovery_reason="attach failed despite UBI magic"
+			echo "ART UBI: ${recovery_reason}, preserving ART and re-ubinizing 0:ART" > /dev/console
+		fi
+	else
+		need_recovery=1
+		recovery_reason="first boot migration required"
+		echo "ART UBI: ${recovery_reason}, backing up raw ART from ${raw_art}" > /dev/console
+	fi
+
+	if ! art_volume_can_fit "0:ART" "$beb_limit" "$vol_size_kb"; then
+		echo "ART UBI: Requested size ${vol_size_kb}KiB cannot fit on 0:ART, skipping destructive migration" > /dev/console
+		return 1
+	fi
+
+	backup_file="/tmp/raw_art_backup.bin"
+	backup_count_kb="$vol_size_kb"
+	if ! dd if="$raw_art" of="$backup_file" bs=1024 count="$backup_count_kb"; then
+		echo "ART UBI: Failed to back up raw ART from ${raw_art}" > /dev/console
+		return 1
+	fi
+
+	if [ ! -s "$backup_file" ]; then
+		echo "ART UBI: Raw ART backup is empty, aborting migration" > /dev/console
+		return 1
+	fi
+
+	# This path should never be reached with need_recovery != 1 because all earlier
+	# successful flows return immediately. Keep this as a defensive sanity check in
+	# case future control-flow changes accidentally drop into the destructive path.
+	if [ "$need_recovery" != "1" ]; then
+		echo "ART UBI: Internal error, recovery path not selected" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	mtd_num=$(find_mtd_index "0:ART")
+	if [ -z "$mtd_num" ]; then
+		echo "ART UBI: Failed to resolve MTD index for 0:ART" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	ubi_num=$(ubi_find_dev "0:ART" 2>/dev/null)
+	if [ -n "$ubi_num" ]; then
+		ubidetach -d "${ubi_num}" 2>/dev/null || true
+	fi
+
+	echo "ART UBI: Formatting 0:ART and creating UBI volume 'art'" > /dev/console
+	if ! ubiformat /dev/mtd${mtd_num} -y; then
+		echo "ART UBI: ubiformat failed during recovery" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	if ! ubi_attach "0:ART" "$beb_limit"; then
+		echo "ART UBI: Failed to attach UBI backend after formatting" > /dev/console
+		restore_raw_art_backup "$backup_file" "$raw_art" || \
+			echo "ART UBI: Failed to roll back raw ART after post-format attach failure" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	ubi_num=$(ubi_find_dev "0:ART")
+	if [ -z "$ubi_num" ]; then
+		echo "ART UBI: Failed to resolve attached UBI device for 0:ART" > /dev/console
+		restore_raw_art_backup "$backup_file" "$raw_art" || \
+			echo "ART UBI: Failed to roll back raw ART after missing attached UBI device" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	if ! ubimkvol /dev/ubi${ubi_num} -N "art" -t static -s "${vol_size_kb}KiB"; then
+		echo "ART UBI: Failed to create UBI volume 'art'" > /dev/console
+		restore_raw_art_backup "$backup_file" "$raw_art" || \
+			echo "ART UBI: Failed to roll back raw ART after volume creation failure" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	vol_dev=$(get_art_volume_device)
+	if [ -z "$vol_dev" ]; then
+		echo "ART UBI: Failed to resolve ART volume '${vol_name}' after creation" > /dev/console
+		restore_raw_art_backup "$backup_file" "$raw_art" || \
+			echo "ART UBI: Failed to roll back raw ART after volume resolution failure" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	echo "ART UBI: Restoring raw ART backup into ${vol_dev}" > /dev/console
+	if ! ubiupdatevol "$vol_dev" "$backup_file"; then
+		echo "ART UBI: Failed to restore raw ART backup into ${vol_dev}" > /dev/console
+		restore_raw_art_backup "$backup_file" "$raw_art" || \
+			echo "ART UBI: Failed to roll back raw ART after volume restore failure" > /dev/console
+		rm -f "$backup_file"
+		return 1
+	fi
+
+	rm -f "$backup_file"
+	echo "ART UBI: Recovery complete, using volume ${vol_dev}" > /dev/console
+	return 0
+}
+
+# get_art_read_device() returns the ART source path that readers should consume
+# and returns 0 when the selected backend is ready, or 1 when it cannot be resolved.
+get_art_read_device()
+{
+	local flash_type vol_dev raw_dev
+
+	flash_type=$(find_flash_type "0:ART")
+	if [ "$flash_type" = "nand" ] && art_ubifs_enabled; then
+		if ensure_art_ubi_ready; then
+			vol_dev=$(get_art_volume_device)
+			[ -n "$vol_dev" ] || return 1
+			echo "$vol_dev"
+			return 0
+		fi
+
+		raw_dev=$(get_raw_art_device)
+		if [ -n "$raw_dev" ]; then
+			echo "ART UBI: Falling back to raw ART device ${raw_dev} for read path" > /dev/console
+			echo "$raw_dev"
+			return 0
+		fi
+		return 1
+	fi
+
+	raw_dev=$(get_raw_art_device)
+	[ -n "$raw_dev" ] || return 1
+	echo "$raw_dev"
+}
+
+# write_art_file(infile) persists a complete ART payload to the selected backend
+# and returns 0 on successful write, or non-zero when backend setup/write fails.
+write_art_file()
+{
+	local infile="$1"
+	local flash_type vol_dev raw_dev
+
+	[ -n "$infile" ] || return 1
+
+	flash_type=$(find_flash_type "0:ART")
+	if [ "$flash_type" = "nand" ] && art_ubifs_enabled; then
+		if ensure_art_ubi_ready; then
+			vol_dev=$(get_art_volume_device)
+			[ -n "$vol_dev" ] || return 1
+			ubiupdatevol "$vol_dev" "$infile"
+			return $?
+		fi
+
+		raw_dev=$(get_raw_art_device)
+		[ -n "$raw_dev" ] || return 1
+		echo "ART UBI: Falling back to raw ART device ${raw_dev} for write path" > /dev/console
+		dd if="$infile" of="$raw_dev"
+		return $?
+	fi
+
+	raw_dev=$(get_raw_art_device)
+	[ -n "$raw_dev" ] || return 1
+
+	dd if="$infile" of="$raw_dev"
+	return $?
+}
 
 create_cfg_caldata() {
 	local brd_name=$(echo $(board_name) | awk -F '-' '{print $2}')
@@ -410,6 +914,7 @@ create_cfg_caldata_mr()
         SIZE=$(echo $ROW_VAL | awk -F ',' '{print $5}')
         IS_PCI=$(echo $ROW_VAL | awk -F ',' '{print $6}')
         DIR_LIB=$(echo $ROW_VAL | awk -F ',' '{print $7}')
+        FILE_SUFFIX=$((IS_PCI + 1))
 
         echo -e $brd "\t" $BOARD_ID "\t"  $SLOT_ID "\t" $OFFSET "\t" $SIZE "\t" $IS_PCI "\t" $DIR_LIB
 
@@ -431,11 +936,11 @@ create_cfg_caldata_mr()
         else
             if [ "$DIR_LIB" == "qcn9160" ]
             then
-                cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
-                cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".bin /lib/firmware/"$DIR_LIB"/
+                cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata_"$FILE_SUFFIX".bin bs=1 count="$BDF_SIZE" skip="$OFFSET")
+                cp -f "$apdk"/"$DIR_LIB"/caldata_"$FILE_SUFFIX".bin /lib/firmware/"$DIR_LIB"/
             else
-                cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
-                cp -f "$apdk"/"$DIR_LIB"/caldata_"$SLOT_ID".b"$BOARD_ID" /lib/firmware/"$DIR_LIB"/
+                cmd=$(dd if=$READ_IF of="$apdk"/"$DIR_LIB"/caldata_"$FILE_SUFFIX".b"$BOARD_ID" bs=1 count="$BDF_SIZE" skip="$OFFSET")
+                cp -f "$apdk"/"$DIR_LIB"/caldata_"$FILE_SUFFIX".b"$BOARD_ID" /lib/firmware/"$DIR_LIB"/
             fi
         fi
 
