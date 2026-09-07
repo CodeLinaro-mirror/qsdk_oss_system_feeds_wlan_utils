@@ -83,6 +83,19 @@ is_ftm_conf_supported() {
                 rm -rf $ftm_conf_path/ftm.conf
 		;;
 	esac
+
+	# Record which directory (base or _v2) is the latest-present version of each
+	# chip family, so caldata retrieval/symlinking always targets the correct
+	# directory when both base and _v2 variants co-exist on the same device.
+	if [ -f /tmp/art.conf ]; then
+		for chip in qcn9625 qcn9589; do
+			if [ -d /lib/firmware/$chip ] || [ -d /lib/firmware/${chip}_v2 ]; then
+				local chip_version="$chip"
+				[ -d /lib/firmware/${chip}_v2 ] && chip_version="${chip}_v2"
+				echo "ART_CHIP_VERSION_${chip}=${chip_version}" >> /tmp/art.conf
+			fi
+		done
+	fi
 }
 
 is_ftm_conf_supported
