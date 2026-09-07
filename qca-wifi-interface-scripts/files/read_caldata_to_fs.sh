@@ -63,8 +63,7 @@ is_ftm_conf_supported() {
 		ART_UBIFS=1
 		ART_UBI_BEB_LIMIT=4
 		EOF
-		ensure_art_ubi_ready >/dev/null 2>&1 || \
-			echo "ART UBI: Failed to prepare UBI backend for $board" > /dev/console
+		ensure_art_ubi_ready >/dev/null 2>&1 || true
 	;;
 	# IPQ96xx
 	rdp488*|rdp489*|rdp506*|rdp507*|rdp490*|rdp491*)
@@ -77,8 +76,7 @@ is_ftm_conf_supported() {
 		ART_UBIFS=1
 		ART_UBI_BEB_LIMIT=5
 		EOF
-		ensure_art_ubi_ready >/dev/null 2>&1 || \
-			echo "ART UBI: Failed to prepare UBI backend for $board" > /dev/console
+		ensure_art_ubi_ready >/dev/null 2>&1 || true
 	;;
 	*)
 		echo "ftm.conf file is not supported for $board " > /dev/console
