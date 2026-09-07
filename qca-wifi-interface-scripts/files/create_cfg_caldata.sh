@@ -916,6 +916,17 @@ create_cfg_caldata_mr()
         DIR_LIB=$(echo $ROW_VAL | awk -F ',' '{print $7}')
         FILE_SUFFIX=$((IS_PCI + 1))
 
+        # Resolve DIR_LIB to the latest-present versioned directory (e.g. qcn9625_v2)
+        # when /tmp/art.conf tags one for this chip family; only accept the tagged
+        # value if it is actually a version of the same chip (prefix-matches DIR_LIB).
+        CHIP_VERSION=$(conf_get_value /tmp/art.conf "ART_CHIP_VERSION_${DIR_LIB}")
+        case "$CHIP_VERSION" in
+            "${DIR_LIB}"*)
+                DIR_LIB="$CHIP_VERSION"
+                ;;
+        esac
+        mkdir -p "$apdk"/"$DIR_LIB"
+
         echo -e $brd "\t" $BOARD_ID "\t"  $SLOT_ID "\t" $OFFSET "\t" $SIZE "\t" $IS_PCI "\t" $DIR_LIB
 
         #Get the BDF size
