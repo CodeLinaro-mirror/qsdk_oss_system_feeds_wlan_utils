@@ -66,7 +66,7 @@ is_ftm_conf_supported() {
 		ensure_art_ubi_ready >/dev/null 2>&1 || true
 	;;
 	# IPQ96xx
-	rdp488*|rdp489*|rdp506*|rdp507*|rdp490*|rdp491*)
+	rdp488*|rdp489*|rdp506*|rdp507*|rdp490*|rdp491*|rdp525*|rdp529*|rdp530*|rdp532*)
 		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
 		# Maximum ART partition size among IPQ96xx.
 		cat <<-EOF > /tmp/art.conf
@@ -75,6 +75,18 @@ is_ftm_conf_supported() {
 		ART_PARTITION_SIZE_KB=5120
 		ART_UBIFS=1
 		ART_UBI_BEB_LIMIT=5
+		EOF
+		ensure_art_ubi_ready >/dev/null 2>&1 || true
+	;;
+	#Amboseli
+	echo-qmp5-v1*)
+		ln -s $ftm_conf_path/ftm.conf /tmp/ftm.conf
+		cat <<-EOF > /tmp/art.conf
+		ART_COMPRESSION=1
+		ART_SLOT_OFFSET_KB=10
+		ART_PARTITION_SIZE_KB=2250
+		ART_UBIFS=1
+		ART_UBI_BEB_LIMIT=4
 		EOF
 		ensure_art_ubi_ready >/dev/null 2>&1 || true
 	;;
@@ -561,13 +573,17 @@ do_load_ipq4019_board_bin()
                     create_cfg_caldata "${mtdblock}" "IPQ5424" "qcn9224" "0"
             ;;
             rdp492*)
-                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+                    QCN9625_DIR=/lib/firmware/qcn9625
+                    [ -d /lib/firmware/qcn9625_v2 ] && QCN9625_DIR=/lib/firmware/qcn9625_v2
+                    ls ${QCN9625_DIR}/caldata*.b* >/dev/null 2>&1 && return
                     mkdir -p ${apdk}/qcn9625
 
                     create_cfg_caldata_mr "${mtdblock}" "IPQ5424"
             ;;
             rdp499* | rdp502* | rdp503* | rdp504* | rdp505*)
-                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+                    QCN9625_DIR=/lib/firmware/qcn9625
+                    [ -d /lib/firmware/qcn9625_v2 ] && QCN9625_DIR=/lib/firmware/qcn9625_v2
+                    ls ${QCN9625_DIR}/caldata*.b* >/dev/null 2>&1 && return
                     mkdir -p ${apdk}/qcn9625
 
                     create_cfg_caldata_mr "${mtdblock}" "IPQ5210"
@@ -578,24 +594,37 @@ do_load_ipq4019_board_bin()
 
                     create_cfg_caldata "${mtdblock}" "" "qcn9224" "0"
             ;;
-           rdp488*|rdp489*|rdp506*)
-                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+            rdp488*|rdp489*|rdp506*|rdp529*|rdp530*|rdp532*)
+                    QCN9625_DIR=/lib/firmware/qcn9625
+                    [ -d /lib/firmware/qcn9625_v2 ] && QCN9625_DIR=/lib/firmware/qcn9625_v2
+                    ls ${QCN9625_DIR}/caldata*.b* >/dev/null 2>&1 && return
                     mkdir -p ${apdk}/qcn9625
 
                     create_cfg_caldata_mr "${mtdblock}" "IPQ9650"
-           ;;
-           rdp507*|rdp490*|rdp491*)
-                    ls /lib/firmware/qcn9589/caldata*.b* >/dev/null 2>&1 && \
-                    ls /lib/firmware/qcn9625/caldata*.b* >/dev/null 2>&1 && return
+            ;;
+            echo-qmp5-v1*)
+                    mkdir -p ${apdk}/qcn9625
+
+                    create_cfg_caldata_mr "${mtdblock}" "IPQ9650"
+            ;;
+            rdp507*|rdp490*|rdp491*|rdp525*)
+                    QCN9625_DIR=/lib/firmware/qcn9625
+                    QCN9589_DIR=/lib/firmware/qcn9589
+                    [ -d /lib/firmware/qcn9625_v2 ] && QCN9625_DIR=/lib/firmware/qcn9625_v2
+                    [ -d /lib/firmware/qcn9589_v2 ] && QCN9589_DIR=/lib/firmware/qcn9589_v2
+                    ls ${QCN9589_DIR}/caldata*.b* >/dev/null 2>&1 && \
+                    ls ${QCN9625_DIR}/caldata*.b* >/dev/null 2>&1 && return
                     mkdir -p ${apdk}/qcn9589
                     mkdir -p ${apdk}/qcn9625
                     create_cfg_caldata_mr "${mtdblock}" "IPQ9650"
-           ;;
-           rdp511*|rdp512*)
-                    ls /lib/firmware/qcn9589/caldata*.b* >/dev/null 2>&1 && return
+            ;;
+            rdp511*|rdp512*)
+                    QCN9589_DIR=/lib/firmware/qcn9589
+                    [ -d /lib/firmware/qcn9589_v2 ] && QCN9589_DIR=/lib/firmware/qcn9589_v2
+                    ls ${QCN9589_DIR}/caldata*.b* >/dev/null 2>&1 && return
                     mkdir -p ${apdk}/qcn9589
                     create_cfg_caldata_mr "${mtdblock}" "IPQ5210"
-           ;;
+            ;;
    esac
 }
 
