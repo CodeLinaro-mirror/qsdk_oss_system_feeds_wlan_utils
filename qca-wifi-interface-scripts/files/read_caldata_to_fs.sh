@@ -59,7 +59,7 @@ is_ftm_conf_supported() {
 		cat <<-EOF > /tmp/art.conf
 		ART_COMPRESSION=1
 		ART_SLOT_OFFSET_KB=10
-		ART_PARTITION_SIZE_KB=2048
+		ART_PARTITION_SIZE_KB=1840
 		ART_UBIFS=1
 		ART_UBI_BEB_LIMIT=4
 		EOF
@@ -72,7 +72,7 @@ is_ftm_conf_supported() {
 		cat <<-EOF > /tmp/art.conf
 		ART_COMPRESSION=1
 		ART_SLOT_OFFSET_KB=10
-		ART_PARTITION_SIZE_KB=5120
+		ART_PARTITION_SIZE_KB=3890
 		ART_UBIFS=1
 		ART_UBI_BEB_LIMIT=5
 		EOF

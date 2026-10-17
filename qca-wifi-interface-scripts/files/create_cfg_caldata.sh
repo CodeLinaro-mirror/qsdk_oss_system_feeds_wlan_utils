@@ -453,8 +453,12 @@ art_volume_can_fit()
 	# UBI data area subtracts EC+VID/data header overhead. On our NAND targets PEB
 	# is expected to be much larger than 4096 bytes; if not, treat the geometry as
 	# unsupported for this estimation and avoid destructive migration.
-	[ "$peb_size" -gt 4096 ] || return 1
-	available_bytes=$(((good_pebs - reserve_overhead) * (peb_size - 4096)))
+	local page_size
+	page_size=$(cat /sys/class/mtd/mtd${mtd_num}/writesize 2>/dev/null)
+	[ -n "$page_size" ] || page_size=2048
+
+	[ "$peb_size" -gt "$((page_size * 2))" ] || return 1
+	available_bytes=$(((good_pebs - reserve_overhead) * (peb_size - (page_size * 2))))
 	requested_bytes=$((vol_size_kb * 1024))
 
 	[ "$available_bytes" -ge "$requested_bytes" ]
